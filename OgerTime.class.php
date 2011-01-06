@@ -1,4 +1,10 @@
 <?PHP
+/*
+#LICENSE BEGIN
+#LICENSE END
+*/
+
+
 
 
 /**

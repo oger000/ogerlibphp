@@ -1,4 +1,10 @@
 <?PHP
+/*
+#LICENSE BEGIN
+#LICENSE END
+*/
+
+
 
 // include smarty once here
 require_once Config::$smartyProgDir . DIRECTORY_SEPARATOR . 'Smarty.class.php';

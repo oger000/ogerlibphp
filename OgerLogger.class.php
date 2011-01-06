@@ -1,4 +1,10 @@
-<?php
+<?PHP
+/*
+#LICENSE BEGIN
+#LICENSE END
+*/
+
+
 
 class OgerLogger {
 

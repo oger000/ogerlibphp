@@ -1,4 +1,10 @@
 <?PHP
+/*
+#LICENSE BEGIN
+#LICENSE END
+*/
+
+
 
 /**
 * Helper class for class and object handling
