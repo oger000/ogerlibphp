@@ -151,6 +151,8 @@ class Db {
         $stmt .= $field . '=:' . $field;
       }
       break;
+    default:
+      throw new Exception('Unknown Db::action: ' . $action . '.');
     }
 
     if ($where) $stmt .= ' WHERE ' . $where;
