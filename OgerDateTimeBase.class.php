@@ -52,7 +52,7 @@ abstract class OgerDateTimeBase extends DateTime {
     }
     */
 
-    // handle empty time
+    // handle empty time - check only year because of timezone issues
     $timeStr = trim($timeStr);
     if (substr($timeStr, 0, 4) == '0000' || !$timeStr) {
       $timeStr = '@0';
