@@ -9,6 +9,12 @@
 
 /**
 * Base class for date and time extensions
+* @time: If no time is given than 'now' is the default.
+*        If an empty string or null is given it result in an empty date time value.
+*        new DateTime() results in now.
+*        new DateTime(null) results in an empty date time.
+*        new DateTime('') results in an empty date time.
+*        new DateTime(' ') results in an empty date time.
 */
 abstract class OgerDateTimeBase extends DateTime {
 
@@ -47,6 +53,7 @@ abstract class OgerDateTimeBase extends DateTime {
     */
 
     // handle empty time
+    $timeStr = trim($timeStr);
     if (substr($timeStr, 0, 4) == '0000' || !$timeStr) {
       $timeStr = '@0';
     }
