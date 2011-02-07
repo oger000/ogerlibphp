@@ -15,7 +15,7 @@ class Extjs {
   */
   public static function failureMsg($msg) {
     $msg = str_replace("'", "\'", $msg);
-    $msg = str_replace('"', '\"', $msg);
+    //$msg = str_replace('"', '\"', $msg);
     return "{ success: false, msg: '" . $msg . "' }";
   }  // failure msg json object
 
