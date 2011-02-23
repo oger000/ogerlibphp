@@ -123,6 +123,25 @@ class Db {
   }  // end of cleaning statement parameters
 
 
+
+  /**
+  * create where clause for prepared statement
+  */
+  public static function createWhereStmt($fields, $andOr = 'AND') {
+
+    $stmt = '';
+
+    for ($i=0; $i < count($fields); $i++) {
+      if ($i > 0 && $i < count($fields)) $stmt .= " $andOr ";
+      $field = $fields[$i];
+      $stmt .= $field . '=:' . $field;
+    }
+
+    return $stmt;
+
+  } // end of create where for prepared statement
+
+
   /**
   * create prepared statement for insert or update
   */
