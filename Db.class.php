@@ -145,7 +145,7 @@ class Db {
     }
 
     // return nothing if no statement created
-    if ($stmt) {
+    if (!$stmt) {
       return '';
     }
 
