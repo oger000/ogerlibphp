@@ -127,17 +127,29 @@ class Db {
   /**
   * create where clause for prepared statement
   */
-  public static function createWhereStmt($fields, $andOr = 'AND') {
+  public static function createWhereStmt($fields, $andOr = 'AND', $withWhere = false) {
 
     $stmt = '';
 
-    for ($i=0; $i < count($fields); $i++) {
-      if ($i > 0 && $i < count($fields)) $stmt .= " $andOr ";
-      $field = $fields[$i];
-      $stmt .= $field . '=:' . $field;
+    // allow "parameter skiping"
+    if (!$andOr) {
+      $andOr = 'AND';
     }
 
-    return $stmt;
+    foreach ($fields as $fieldName) {
+      // skip empty field names
+      if (!$fieldName) {
+        continue;
+      }
+      $stmt .= ($stmt ? " $andOr " : '') . $fieldName . '=:' . $fieldName;
+    }
+
+    // return nothing if no statement created
+    if ($stmt) {
+      return '';
+    }
+
+    return ($withWhere ? ' WHERE ' : '') . $stmt;
 
   } // end of create where for prepared statement
 
