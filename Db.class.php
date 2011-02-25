@@ -13,35 +13,56 @@ class Db {
 
   private static $conn;
 
+  private static $dbName;
+  private static $dbUser;
+  private static $dbPass;
+  private static $dbAttrib;
+
   const ACTION_INSERT = 'INSERT';
   const ACTION_UPDATE = 'UPDATE';
 
+
   /**
-  * get connection
-  **/
+  * Init db class.
+  */
+  public static function init($dbName, $dbUser, $dbPass, $dbAttrib) {
+    self::$dbName = $dbName;
+    self::$dbUser = $dbUser;
+    self::$dbPass = $dbPass;
+    self::$dbAttrib = $dbAttrib;
+  }  // eo init
+
+
+  /**
+  * Get connection
+  */
   public static function getConn() {
     if (self::$conn === null) {
-      self::$conn = new PDO(Config::$dbName, Config::$dbUser, Config::$dbPass);
-      if (Config::$dbErrorMode) {
-        self::$conn->setAttribute(PDO::ATTR_ERRMODE, Config::$dbErrorMode);
+      self::$conn = new PDO(self::$dbName, self::$dbUser, self::$dbPass);
+      if (self::$dbAttrib['errorMode']) {
+        self::$conn->setAttribute(PDO::ATTR_ERRMODE, self::$dbAttrib['errorMode']);
       }
       // TODO maybe the following settings are mysql specific?
-      if (Config::$dbConnectionCharset) {
-        self::$conn->exec('SET CHARACTER SET ' . Config::$dbConnectionCharset);
+      if (self::$dbAttrib['connectionCharset']) {
+        self::$conn->exec('SET CHARACTER SET ' . self::$dbAttrib['connectionCharset']);
       }
-      if (Config::$dbConnectionTimeZone) {
-        self::$conn->exec('SET time_zone = ' . Config::$dbConnectionTimeZone);
+      if (self::$dbAttrib['connectionTimeZone']) {
+        self::$conn->exec('SET time_zone = ' . self::$dbAttrib['connectionTimeZone']);
       }
    }
     return self::$conn;
-  }
+  }  // eo get connection
+
+
 
   /**
   * prepare statement and fill parameter array from request
   */
   public static function prepare($stmt, &$parms = array()) {
-    $parms = static::fillStmtParms($stmt, $parms);
-    $parms = static::cleanStmtParms($stmt, $parms);
+    if ($parms) {
+      $parms = static::fillStmtParms($stmt, $parms);
+      $parms = static::cleanStmtParms($stmt, $parms);
+    }
     self::getConn();
     return self::$conn->prepare($stmt);
   }
