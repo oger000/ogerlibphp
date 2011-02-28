@@ -9,10 +9,28 @@
 // include smarty once here
 require_once Config::$smartyProgDir . DIRECTORY_SEPARATOR . 'Smarty.class.php';
 
-
+/**
+* OBSOLETED by use of extjs
+* If ever reactivated try to make independend of config class
+*/
 class Form {
 
   private static $smarty;
+
+  public static $smartyProgDir;
+  public static $smartyTemplateDir;
+  public static $smartyCompileDir;
+  public static $smartyPluginsDir;
+
+  /**
+  * Init form class.
+  */
+  public static function init($smartyProgDir, $smartyTemplateDir, $smartyCompileDir, $smartyPluginsDir) {
+    self::$smartyProgDir = $smartyProgDir;
+    self::$smartyTemplateDir = $smartyTemplateDir;
+    self::$smartyCompileDir = $smartyCompileDir;
+    self::$smartyPluginsDir = $smartyPluginsDir;
+  }  // eo init
 
 
   /**
@@ -23,9 +41,9 @@ class Form {
     if (!self::$smarty) {
       // init smarty
       self::$smarty = new Smarty();
-      self::$smarty->template_dir = Config::$smartyTemplateDir;
-      self::$smarty->compile_dir = Config::$smartyCompileDir;
-      foreach (explode(':', Config::$smartyPluginsDirs) as $dir) {
+      self::$smarty->template_dir = self::$smartyTemplateDir;
+      self::$smarty->compile_dir = self::$smartyCompileDir;
+      foreach (explode(':', self::$smartyPluginsDirs) as $dir) {
         self::$smarty->plugins_dir[] = trim($dir);
       }
     }
