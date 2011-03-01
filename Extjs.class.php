@@ -10,20 +10,34 @@
 */
 class Extjs {
 
+
+
   /**
-  * Create an extjs json message with success property.
-  * @msg: message text
-  * @success: success value. Defaults to true.
+  * Create a response object.
+  * @data: An array with data for json object. Defaults to empty array.
+  * @success: Boolean flag for the success property.
   */
-  public static function message($msg, $success = true) {
+  public static function responseObj($data = array(), $success = true) {
+    $data['success'] = (boolean)$success;
+    return json_encode($data);
+  }  // eo success object
 
-    // escape string delimiter (we hope that json_encode does this for us)
-    //$msg = str_replace("'", "\'", $msg);
-    ////$msg = str_replace('"', '\"', $msg);
 
-    return json_encode(array('success' => (boolean)$success, 'msg' => $msg));
+  /**
+  * Create a success object.
+  */
+  public static function successObj($data = array()) {
+    return self::responseObj($data, true);
+  }  // eo success object
 
-  }  // create a extjs json message
+
+
+  /**
+  * Create a unsuccess/failure/error object.
+  */
+  public static function unsuccessObj($data = array()) {
+    return self::responseObj($data, false);
+  }  // eo unsuccess object
 
 
 
@@ -41,7 +55,7 @@ class Extjs {
   * Create an unsuccess message.
   */
   public static function unsuccessMsg($msg) {
-    return self::message($msg, false);
+    return self::unsuccessObj(array('msg' => $msg));
   }
 
 
@@ -50,7 +64,7 @@ class Extjs {
   * Create a success message.
   */
   public static function successMsg($msg) {
-    return self::message($msg, true);
+    return self::successObj(array('msg' => $msg));
   }
 
 
@@ -59,7 +73,7 @@ class Extjs {
   * Create a success object (without message).
   */
   public static function success() {
-    return '{ success: true }';
+    return self::successObj();
   }
 
 
