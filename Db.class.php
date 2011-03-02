@@ -214,6 +214,39 @@ class Db {
   } // end of create prepared statement
 
 
+
+  /**
+  * Get database structure.
+  * May be not driver independend???
+  */
+  public static function getDbStruc($dbDriver, $dbName) {
+
+    $dbStruc = array();
+
+    $pstmt = self::prepare('SELECT table_name FROM information_schema.tables WHERE information_schema.tables.table_schema=:dbName');
+    $pstmt->execute(array('dbName' => $dbName));
+    $tables = $pstmt->fetchAll(PDO::FETCH_ASSOC);
+    $pstmt->closeCursor();
+
+    foreach ($tables as $table) {
+
+      $pstmt = self::prepare('SELECT * FROM information_schema.columns ' .
+                             ' WHERE information_schema.columns.table_schema=:dbName AND ' .
+                                   ' information_schema.columns.table_name=:tableName');
+      $pstmt->execute(array('dbName' => $dbName, 'tableName' => $table['table_name']));
+      $columns = $pstmt->fetchAll(PDO::FETCH_ASSOC);
+      $pstmt->closeCursor();
+
+      $table['columns'] = $columns;
+      $dbStruc[] = $table;
+
+    }  // loop over table names
+
+    return $dbStruc;
+
+  }  // eo get db structure
+
+
 }   // end of class
 
 ?>
