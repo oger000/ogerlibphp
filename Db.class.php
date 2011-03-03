@@ -157,6 +157,17 @@ class Db {
       $andOr = 'AND';
     }
 
+
+    // try to detect associative arrays and use array_keys instead
+    foreach ($fields as $key => $value) {
+      if (!is_numeric($key)) {
+        $fields = array_keys($fields);
+        break;
+      }
+    } // eo detect associative array
+
+
+    // create where clause
     foreach ($fields as $fieldName) {
       // skip empty field names
       if (!$fieldName) {
