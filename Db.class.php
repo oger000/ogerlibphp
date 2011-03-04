@@ -234,26 +234,39 @@ class Db {
 
     $dbStruc = array();
 
-    $pstmt = self::prepare('SELECT table_name FROM information_schema.tables WHERE information_schema.tables.table_schema=:dbName');
+    $pstmt = self::prepare('SELECT TABLE_NAME FROM information_schema.tables WHERE information_schema.tables.table_schema=:dbName');
     $pstmt->execute(array('dbName' => $dbName));
-    $tables = $pstmt->fetchAll(PDO::FETCH_ASSOC);
+    $tableRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
     $pstmt->closeCursor();
 
-    foreach ($tables as $table) {
+    $tables = array();
+    foreach ($tableRecords as $tableRecord) {
 
       $pstmt = self::prepare('SELECT * FROM information_schema.columns ' .
                              ' WHERE information_schema.columns.table_schema=:dbName AND ' .
                                    ' information_schema.columns.table_name=:tableName');
-      $pstmt->execute(array('dbName' => $dbName, 'tableName' => $table['table_name']));
-      $columns = $pstmt->fetchAll(PDO::FETCH_ASSOC);
+      $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
+      $columnRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
 
-      $table['columns'] = $columns;
-      $dbStruc[] = $table;
+      $colums = array();
+      foreach ($columnRecords as $columnRecord) {
+        $columns[$columnRecord['COLUMN_NAME']] = $columnRecord;
+      }
+
+      $tableRecord['columns'] = $columns;
+      $tables[$tableRecord['TABLE_NAME']] = $tableRecord;
 
     }  // loop over table names
 
-    return $dbStruc;
+
+    $dbStruc[$dbName] = array('driver' => $dbDriver,
+                              'name' => $dbName,
+                              'tables' => $tables);
+
+
+    #return $dbStruc;
+    return $tables;
 
   }  // eo get db structure
 
