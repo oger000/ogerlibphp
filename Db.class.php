@@ -121,6 +121,7 @@ class Db {
   }  // end of fill stmt parameters
 
 
+
   /**
   * remove entries from search values when no corresponding sql parameters exists
   */
@@ -173,7 +174,7 @@ class Db {
       if (!$fieldName) {
         continue;
       }
-      $stmt .= ($stmt ? " $andOr " : '') . $fieldName . '=:' . $fieldName;
+      $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . '=:' . $fieldName;
     }
 
     // return nothing if no statement created
@@ -201,17 +202,17 @@ class Db {
           $stmtValue .= ',';
         }
         $field = $fields[$i];
-        $stmtField .= $field;
+        $stmtField .= "`$field`";
         $stmtValue .= ':' . $field;
       }
-      $stmt .= "INSERT INTO $table (" . $stmtField . ') VALUES (' . $stmtValue . ')';
+      $stmt .= "INSERT INTO `$table` ($stmtField) VALUES ($stmtValue)";
       break;
     case self::ACTION_UPDATE:
-      $stmt .= 'UPDATE ' . $table . ' SET ';
+      $stmt .= "UPDATE `$table` SET ";
       for ($i=0; $i < count($fields); $i++) {
         if ($i > 0) $stmt .= ',';
         $field = $fields[$i];
-        $stmt .= $field . '=:' . $field;
+        $stmt .= "`$field`" . '=:' . $field;
       }
       break;
     default:
@@ -357,7 +358,7 @@ class Db {
       $columnRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
 
-      $colums = array();
+      $columns = array();
       foreach ($columnRecords as $columnRecord) {
         $columns[$columnRecord['COLUMN_NAME']] = $columnRecord;
       }
@@ -377,6 +378,66 @@ class Db {
     return $tables;
 
   }  // eo get db structure
+
+
+
+  /**
+  * Create an add table statement.
+  */
+  public static function createAddTableStmt($tableDef) {
+
+    $stmt = "CREATE TABLE `" . $tableDef['TABLE_NAME'] . "` (";
+    $follow = false;
+    $primaryIndexColumns = array();
+    foreach ($tableDef['columns'] as $columnName => $columnDef) {
+      if ($follow) {
+        $stmt .= ", ";
+      }
+      $follow = true;
+      $stmt .= self::createColumnDefStmt($columnDef);
+      if ($columnDef['COLUMN_KEY'] == 'PRI') {
+        $primaryIndexColumns[] = "`" . $columnDef['COLUMN_NAME'] . "`";
+      }
+    }  // eo column defs
+
+    // handle primary indices
+    if ($primaryIndexColumns) {
+      $stmt .= ', PRIMARY KEY (' . implode (', ', $primaryIndexColumns);
+    }  // primary index
+
+    $stmt .= ")";
+
+    return $stmt;
+
+  }  // eo create an add table statement
+
+
+  /**
+  * Create an column def statement for CREATE TABLE and ADD COLUMN.
+  */
+  public static function createColumnDefStmt($columnDef) {
+
+    $stmt = "`" . $columnDef['COLUMN_NAME'] . "` " .
+            $columnDef['COLUMN_TYPE'] .
+            ($columnDef['IS_NULLABLE'] == 'YES' ? '' : ' NOT NULL') .
+            ($columnDef['COLUMN_DEFAULT'] ? " DEFAULT '" . $columnDef['COLUMN_DEFAULT'] . "'" : '');
+
+    return $stmt;
+
+  }  // eo create column def statement
+
+
+  /**
+  * Create an add table statement.
+  */
+  public static function createAddColumnStmt($tableName, $columnDef) {
+
+    $stmt = "ALTER TABLE `$tableName` ADD COLUMN " . self::createColumnDefStmt($columnDef);
+
+    return $stmt;
+
+  }  // eo create an add column statement
+
 
 
 
