@@ -227,10 +227,103 @@ class Db {
 
 
   /**
-  * Get database structure.
-  * May be not driver independend???
+  * Get database structure (driver dependend).
   */
   public static function getDbStruc($dbDriver, $dbName) {
+
+    $dbStruc = array();
+
+    if ($dbDriver == 'mysql') {
+      // $dbStruc = getDbStrucMysql($dbName);
+      $dbStruc = getDbStrucInformationSchema($dbName);
+    }
+    elseif ($dbDriver == 'sqlite') {
+      $dbStruc = getDbStrucMysql($dbName);
+    }
+    elseif ($dbDriver == 'ansiinformationschema') {
+      $dbStruc = getDbStrucInformationSchema($dbName);
+    }
+
+
+    return $dbStruc;
+
+  }  // eo get db struc
+
+
+
+  /**
+  * Get database structure (for sqlite databases).
+  */
+  public static function getDbStrucSqlite($dbName) {
+
+    $dbStruc = array();
+
+    /*
+
+    // from http://www.sqlite.org/cvstrac/wiki?p=InformationSchema
+
+    CREATE VIEW INFORMATION_SCHEMA_TABLES AS
+      SELECT * FROM (
+          SELECT 'main'     AS TABLE_CATALOG,
+                 'sqlite'   AS TABLE_SCHEMA,
+                 tbl_name   AS TABLE_NAME,
+                 CASE WHEN type = 'table' THEN 'BASE TABLE'
+                      WHEN type = 'view'  THEN 'VIEW'
+                 END        AS TABLE_TYPE,
+                 sql        AS TABLE_SOURCE
+          FROM   sqlite_master
+          WHERE  type IN ('table', 'view')
+                 AND tbl_name NOT LIKE 'INFORMATION_SCHEMA_%'
+          UNION
+          SELECT 'main'     AS TABLE_CATALOG,
+                 'sqlite'   AS TABLE_SCHEMA,
+                 tbl_name   AS TABLE_NAME,
+                 CASE WHEN type = 'table' THEN 'TEMPORARY TABLE'
+                      WHEN type = 'view'  THEN 'TEMPORARY VIEW'
+                 END        AS TABLE_TYPE,
+                 sql        AS TABLE_SOURCE
+          FROM   sqlite_temp_master
+          WHERE  type IN ('table', 'view')
+                 AND tbl_name NOT LIKE 'INFORMATION_SCHEMA_%'
+      ) ORDER BY TABLE_TYPE, TABLE_NAME;
+
+    */
+
+    // Note, 12 Jan 2006: I reformatted this page so it was actually possible to read it,
+    // but I did not debug the SQL code given. As stated, it does not work; any query on the view
+    // gives the error "no such table: sqlite_temp_master". If you don't use temporary tables
+    // you can just rip out the second inner SELECT (which then renders the outer SELECT unnecessary):
+
+    /*
+
+    CREATE VIEW INFORMATION_SCHEMA_TABLES AS
+        SELECT 'main'     AS TABLE_CATALOG,
+               'sqlite'   AS TABLE_SCHEMA,
+               tbl_name   AS TABLE_NAME,
+               CASE WHEN type = 'table' THEN 'BASE TABLE'
+                    WHEN type = 'view'  THEN 'VIEW'
+               END        AS TABLE_TYPE,
+               sql        AS TABLE_SOURCE
+        FROM   sqlite_master
+        WHERE  type IN ('table', 'view')
+               AND tbl_name NOT LIKE 'INFORMATION_SCHEMA_%'
+        ORDER BY TABLE_TYPE, TABLE_NAME;
+
+    }
+
+    */
+
+
+    return $dbStruc();
+
+  } // eo db struc for mysql databases
+
+
+
+  /**
+  * Get database structure (for databases with ansi conform information schema).
+  */
+  public static function getDbStrucAnsiInformationSchema($dbName) {
 
     $dbStruc = array();
 
@@ -269,6 +362,8 @@ class Db {
     return $tables;
 
   }  // eo get db structure
+
+
 
 
 }   // end of class
