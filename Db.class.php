@@ -234,14 +234,15 @@ class Db {
     $dbStruc = array();
 
     if ($dbDriver == 'mysql') {
-      // $dbStruc = getDbStrucMysql($dbName);
-      $dbStruc = getDbStrucInformationSchema($dbName);
+      // mysql should be ansi information schema compatible (and may be has some extensions)
+      // $dbStruc = self::getDbStrucMysql($dbName);
+      $dbStruc = self::getDbStrucAnsiInformationSchema($dbName);
     }
     elseif ($dbDriver == 'sqlite') {
-      $dbStruc = getDbStrucMysql($dbName);
+      $dbStruc = self::getDbStrucSqlite($dbName);
     }
     elseif ($dbDriver == 'ansiinformationschema') {
-      $dbStruc = getDbStrucInformationSchema($dbName);
+      $dbStruc = self::getDbStrucAnsiInformationSchema($dbName);
     }
 
 
@@ -327,7 +328,7 @@ class Db {
 
     $dbStruc = array();
 
-    $pstmt = self::prepare('SELECT TABLE_NAME FROM information_schema.tables WHERE information_schema.tables.table_schema=:dbName');
+    $pstmt = self::prepare('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE INFORMATION_SCHEMA.TABLES.TABLE_SCHEMA=:dbName');
     $pstmt->execute(array('dbName' => $dbName));
     $tableRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
     $pstmt->closeCursor();
@@ -335,9 +336,23 @@ class Db {
     $tables = array();
     foreach ($tableRecords as $tableRecord) {
 
-      $pstmt = self::prepare('SELECT * FROM information_schema.columns ' .
-                             ' WHERE information_schema.columns.table_schema=:dbName AND ' .
-                                   ' information_schema.columns.table_name=:tableName');
+      /*
+      // currently used only for mysql, so maybe we can skip some columns
+      $pstmt = self::prepare('SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, ' .
+                                    'CHARACTER_MAXIMUM_LENGTH, CHARACTER_OCTET_LENGTH, CHARACTER_SET_NAME, COLLATION_NAME, ' .
+                                    'NUMERIC_PRECISION, NUMERIC_SCALE, ' .
+                                    'COLUMN_TYPE, ' .
+                                    'COLUMN_KEY ' .
+                             ' FROM INFORMATION_SCHEMA.COLUMNS ' .
+                             ' WHERE INFORMATION_SCHEMA.COLUMNS.TABLE_SCHEMA=:dbName AND ' .
+                                   ' INFORMATION_SCHEMA.COLUMNS.TABLE_NAME=:tableName');
+      */
+      $pstmt = self::prepare('SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, ' .
+                                    'COLUMN_TYPE, ' .
+                                    'COLUMN_KEY ' .
+                             ' FROM INFORMATION_SCHEMA.COLUMNS ' .
+                             ' WHERE INFORMATION_SCHEMA.COLUMNS.TABLE_SCHEMA=:dbName AND ' .
+                                   ' INFORMATION_SCHEMA.COLUMNS.TABLE_NAME=:tableName');
       $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
       $columnRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
