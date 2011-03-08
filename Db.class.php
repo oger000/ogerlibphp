@@ -229,6 +229,7 @@ class Db {
 
   /**
   * Get database structure (driver dependend).
+  * ATTENTION: Be aware, that a db connection must be open when calling this method!
   */
   public static function getDbStruc($dbDriver, $dbName) {
 
@@ -337,6 +338,8 @@ class Db {
     $tables = array();
     foreach ($tableRecords as $tableRecord) {
 
+      // get columns info
+
       /*
       // currently used only for mysql, so maybe we can skip some columns
       $pstmt = self::prepare('SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, ' .
@@ -362,20 +365,45 @@ class Db {
       foreach ($columnRecords as $columnRecord) {
         $columns[$columnRecord['COLUMN_NAME']] = $columnRecord;
       }
-
       $tableRecord['columns'] = $columns;
+
+
+      // get key info
+      $pstmt = self::prepare('SELECT CONSTRAINT_NAME, ORDINAL_POSITION,	POSITION_IN_UNIQUE_CONSTRAINT, COLUMN_NAME ' .
+                             ' FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE ' .
+                             ' WHERE INFORMATION_SCHEMA.KEY_COLUMN_USAGE.TABLE_SCHEMA=:dbName AND ' .
+                                   ' INFORMATION_SCHEMA.KEY_COLUMN_USAGE.TABLE_NAME=:tableName');
+      $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
+      $keyRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
+      $pstmt->closeCursor();
+
+      $keys = array();
+      foreach ($keyRecords as $keyRecord) {
+        $keys[$keyRecord['CONSTRAINT_NAME']] = $keyRecord;
+      }
+      $tableRecord['keys'] = $keys;
+
+
+      // final tables info
       $tables[$tableRecord['TABLE_NAME']] = $tableRecord;
 
     }  // loop over table names
 
 
+
+    // return tables array
+    return $tables;
+
+
+    /*
+    we dont need this extra info
+    // compose final array
     $dbStruc[$dbName] = array('driver' => $dbDriver,
                               'name' => $dbName,
                               'tables' => $tables);
 
-
-    #return $dbStruc;
-    return $tables;
+    return $dbStruc;
+    */
 
   }  // eo get db structure
 
@@ -388,7 +416,7 @@ class Db {
 
     $stmt = "CREATE TABLE `" . $tableDef['TABLE_NAME'] . "` (";
     $follow = false;
-    $primaryIndexColumns = array();
+    $primaryKeyColumns = array();
     foreach ($tableDef['columns'] as $columnName => $columnDef) {
       if ($follow) {
         $stmt .= ", ";
@@ -396,13 +424,13 @@ class Db {
       $follow = true;
       $stmt .= self::createColumnDefStmt($columnDef);
       if ($columnDef['COLUMN_KEY'] == 'PRI') {
-        $primaryIndexColumns[] = "`" . $columnDef['COLUMN_NAME'] . "`";
+        $primaryKeyColumns[] = "`" . $columnDef['COLUMN_NAME'] . "`";
       }
     }  // eo column defs
 
     // handle primary indices
-    if ($primaryIndexColumns) {
-      $stmt .= ', PRIMARY KEY (' . implode (', ', $primaryIndexColumns);
+    if ($primaryKeyColumns) {
+      $stmt .= ', PRIMARY KEY (' . implode (', ', $primaryKeyColumns);
     }  // primary index
 
     $stmt .= ")";
