@@ -355,8 +355,8 @@ class Db {
                                     'COLUMN_TYPE, ' .
                                     'COLUMN_KEY ' .
                              ' FROM INFORMATION_SCHEMA.COLUMNS ' .
-                             ' WHERE INFORMATION_SCHEMA.COLUMNS.TABLE_SCHEMA=:dbName AND ' .
-                                   ' INFORMATION_SCHEMA.COLUMNS.TABLE_NAME=:tableName');
+                             ' WHERE TABLE_SCHEMA=:dbName AND ' .
+                                   ' TABLE_NAME=:tableName');
       $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
       $columnRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
@@ -371,15 +371,16 @@ class Db {
       // get key info
       $pstmt = self::prepare('SELECT CONSTRAINT_NAME, ORDINAL_POSITION,	POSITION_IN_UNIQUE_CONSTRAINT, COLUMN_NAME ' .
                              ' FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE ' .
-                             ' WHERE INFORMATION_SCHEMA.KEY_COLUMN_USAGE.TABLE_SCHEMA=:dbName AND ' .
-                                   ' INFORMATION_SCHEMA.KEY_COLUMN_USAGE.TABLE_NAME=:tableName');
+                             ' WHERE TABLE_SCHEMA=:dbName AND ' .
+                                   ' TABLE_NAME=:tableName' .
+                              ' ORDER BY TABLE_SCHEMA, TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION');
       $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
       $keyRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
 
       $keys = array();
       foreach ($keyRecords as $keyRecord) {
-        $keys[$keyRecord['CONSTRAINT_NAME']] = $keyRecord;
+        $keys[$keyRecord['CONSTRAINT_NAME']][$keyRecord['ORDINAL_POSITION']] = $keyRecord;
       }
       $tableRecord['keys'] = $keys;
 
@@ -411,8 +412,11 @@ class Db {
 
   /**
   * Create an add table statement.
+  * ATTENTION: does not add primary, unique or other keys!!!
   */
   public static function createAddTableStmt($tableDef) {
+
+    $addKeys = false;  // for now
 
     $stmt = "CREATE TABLE `" . $tableDef['TABLE_NAME'] . "` (";
     $follow = false;
@@ -429,7 +433,20 @@ class Db {
     }  // eo column defs
 
     // handle primary indices
-    if ($primaryKeyColumns) {
+    /*
+    EXAMPLE:
+      CREATE TABLE IF NOT EXISTS `test` (
+        `auto` int(11) NOT NULL AUTO_INCREMENT,
+        `id` int(11) NOT NULL,
+        `boolfield` tinyint(1) NOT NULL,
+        `numberfield` int(11) NOT NULL,
+        `textfield` text NOT NULL,
+        PRIMARY KEY (`auto`),
+        UNIQUE KEY `numberfield` (`numberfield`),
+        KEY `id` (`id`)
+      );
+    */
+    if ($primaryKeyColumns && $addKeys) {
       $stmt .= ', PRIMARY KEY (' . implode (', ', $primaryKeyColumns);
     }  // primary index
 
