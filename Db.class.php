@@ -30,6 +30,7 @@ class Db {
     self::$dbUser = $dbUser;
     self::$dbPass = $dbPass;
     self::$dbAttrib = $dbAttrib;
+    self::$conn = null;
   }  // eo init
 
 
