@@ -71,11 +71,13 @@ class Extjs {
 
   /**
   * Create a success object (without message).
-  * DEPRECATED
+  * DEPRECATED use successObj() instead
   */
+  /*
   public static function success() {
     return self::successObj();
   }
+  */
 
 
 }  // end of class
