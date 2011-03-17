@@ -57,16 +57,87 @@ class Db {
 
 
   /**
-  * prepare statement and fill parameter array from request
+  * Prepare statement with optional where part and more
   */
-  public static function prepare($stmt, &$parms = array()) {
-    if ($parms) {
-      $parms = static::fillStmtParms($stmt, $parms);
-      $parms = static::cleanStmtParms($stmt, $parms);
+  public static function prepare($stmt, $where = null, $moreStmt = null) {
+    if (is_string($where)) {
+      $stmt .= " WHERE $where";
     }
+    elseif (is_array($where)) {
+      $stmt .= self::createWhereStmt($where, null, true);
+    }
+
+    if ($moreStmt) {
+      $stmt .= " $moreStmt";
+    }
+
     self::getConn();
     return self::$conn->prepare($stmt);
-  }
+
+  }  // eo prepare
+
+
+
+  /**
+  * Check parameters for statement.
+  * Only used for debugging, because the error messages of the pdo-drivers are very sparingly.
+  * @adjust: If params should be adjusted. Defaults to false.
+  *   - true: params are adjusted silently and no error message is thrown
+  *   - false: An error message is thrown if the params does not fit.
+  */
+  public static function checkStmtParams($stmt, &$params = array(), $returnMsg = false, $adjust = false) {
+
+    // check for required params
+    $requiredParams = self::getStmtPlaceHolder($stmt);
+    foreach ($requiredParams as $key) {
+      // remove leading ':'
+      $key = substr($key, 1);
+      // check with and without ':'
+      if (!array_key_exists($key, $params) && !array_key_exists(':' . $key, $params)) {
+        if ($adjust) {
+          $params[$key] = ''; // fill with empty string
+        }
+        else {
+          $msg .= "Required key $key not found in params.\n";
+        }
+      }
+    }  // eo foreach required param
+
+    // check for too much params (work on copy)
+    $tmp = $params;
+    foreach ($tmp as $key => $value) {
+      // param must have ':' prefix for this check to match placeholder in statement
+      if (substr($key, 0, 1) != ':') {
+        $key = ':' . $key;
+      }
+      if (!array_key_exists($key, $requiredParams)) {
+        if ($adjust) {
+          unset($params[$key]); // remove array entry
+        }
+        else {
+          $msg .= "No statement placeholder found for param key $key.\n";
+        }
+      }
+    }  // eo foreach given param
+
+    // check for duplicates (key exists with and without ':')
+    // I hope php drops one of this silently! If not we can add this later.
+
+    // if errormessage than return or throw exception
+    if ($msg) {
+      $msg = "Sql prepare statement check failure: $msg in $stmt with given parameters: " . str_replace("\n", '' ,var_export($params, true));
+      if ($returnMsg) {
+        return $msg;
+      }
+      else {
+        throw new Exception($msg);
+      }
+    }
+
+  }  // eo check statement params
+
+
+
 
 
   /**
@@ -341,8 +412,6 @@ class Db {
 
       // get columns info
 
-      /*
-      // currently used only for mysql, so maybe we can skip some columns
       $pstmt = self::prepare('SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, ' .
                                     'CHARACTER_MAXIMUM_LENGTH, CHARACTER_OCTET_LENGTH, CHARACTER_SET_NAME, COLLATION_NAME, ' .
                                     'NUMERIC_PRECISION, NUMERIC_SCALE, ' .
@@ -351,13 +420,15 @@ class Db {
                              ' FROM INFORMATION_SCHEMA.COLUMNS ' .
                              ' WHERE INFORMATION_SCHEMA.COLUMNS.TABLE_SCHEMA=:dbName AND ' .
                                    ' INFORMATION_SCHEMA.COLUMNS.TABLE_NAME=:tableName');
-      */
+      /*
+      // maybe this would be enough for mysql
       $pstmt = self::prepare('SELECT COLUMN_NAME, COLUMN_DEFAULT, IS_NULLABLE, ' .
                                     'COLUMN_TYPE, ' .
                                     'COLUMN_KEY ' .
                              ' FROM INFORMATION_SCHEMA.COLUMNS ' .
                              ' WHERE TABLE_SCHEMA=:dbName AND ' .
                                    ' TABLE_NAME=:tableName');
+      */
       $pstmt->execute(array('dbName' => $dbName, 'tableName' => $tableRecord['TABLE_NAME']));
       $columnRecords = $pstmt->fetchAll(PDO::FETCH_ASSOC);
       $pstmt->closeCursor();
