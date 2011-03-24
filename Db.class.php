@@ -232,12 +232,9 @@ class Db {
 
 
     // try to detect associative arrays and use array_keys instead
-    foreach ($fields as $key => $value) {
-      if (!is_numeric($key)) {
-        $fields = array_keys($fields);
-        break;
-      }
-    } // eo detect associative array
+    if (OgerFunc::isAssoc($fields)) {
+      $fields = array_keys($fields);
+    }
 
 
     // create where clause

@@ -36,6 +36,20 @@ class OgerFunc {
   }  // end of untabify string
 
 
+  /**
+  * Check if array is associative.
+  * That means if it has non numeric keys.
+  */
+  public static function isAssoc($array) {
+    foreach ($array as $key => $value) {
+      if (!is_numeric($key)) {
+        return true;
+      }
+    }
+    return false;
+  }  // eo assoc check
+
+
 }
 
 ?>
