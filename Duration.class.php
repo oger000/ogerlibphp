@@ -22,7 +22,7 @@ class Duration {
   /**
   * return formated duration
   */
-  public static function format($seconds) {
+  public static function format($seconds, $format = null) {
 
     if (!$seconds) {
       return '';
@@ -45,7 +45,7 @@ class Duration {
     */
 
     // fill format (overflow not used time parts to smaler units)
-    $str = static::$format;
+    $str = ($format ?: static::$format);
     if (strpos($str, "H") !== false) {
       // only pad to ONE leading zero
       $str = str_replace("H", str_pad($hours, 1, '0', STR_PAD_LEFT), $str);
@@ -75,9 +75,9 @@ class Duration {
   * Formated duration.
   * Short style without trailing components and without leading zeros.
   */
-  public static function formatBare($inStr) {
+  public static function formatBare($inStr, $format = null) {
 
-    $str = static::format($inStr);
+    $str = static::format($inStr, $format);
 
     // remove trailing parts
     $pattern = '/' . static::$delimChar .  '0+$/';
@@ -98,7 +98,7 @@ class Duration {
   * parse input according to format
   * ATTENTION: parsing from left to right (most significant first)
   */
-  public static function parse(&$inStrOri) {
+  public static function parse(&$inStrOri, $format = null) {
 
     // trim and replace alternative delimiters
     $inStr = $inStrOri;
@@ -149,7 +149,7 @@ class Duration {
     }  // end of check chars
 
     // fill format multiplier array
-    $tmpFormat = static::$format;
+    $tmpFormat = ($format ?: static::$format);
     $tmpFormat = str_replace("H", 60 * 60, $tmpFormat);
     $tmpFormat = str_replace("i", 60, $tmpFormat);
     $tmpFormat = str_replace("s", 1, $tmpFormat);
