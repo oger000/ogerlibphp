@@ -11,13 +11,13 @@
 
 class OgerDateTime extends OgerDateTimeBase {
 
-  protected static $defaultStringFormat = 'Y-m-d H:m:s';
-  protected static $defaultFormatFormat = 'Y-m-d H:m:s';
+  protected static $defaultStringFormat = 'Y-m-d H:i:s';
+  protected static $defaultFormatFormat = 'Y-m-d H:i:s';
 
   protected static $defaultDateFormat = 'Y-m-d';
-  protected static $defaultTimeFormat = 'H:m:s';
+  protected static $defaultTimeFormat = 'H:i:s';
 
-  protected static $ansiFormat = 'Y-m-d H:m:s';
+  protected static $ansiFormat = 'Y-m-d H:i:s';
 
   protected $dateFormat;
   protected $timeFormat;

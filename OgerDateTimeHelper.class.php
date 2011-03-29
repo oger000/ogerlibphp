@@ -10,58 +10,66 @@
 /**
 * Class for simple date time handling. So simple, that this functions
 * do not go into OgerDateTimeBase.
+* A collection of static methods.
 */
 class OgerDateTimeHelper {
 
-  /**
-  * Set "empty" date strings to blank.
-  */
-  public static function blankDateStrings($dateStr, $dateFieldNames = array()) {
-
-    if (is_array($dateStr)) {
-
-      $newDateStr = array();
-      foreach ($dateStr as $key => $value) {
-
-        // if date field names are given and the key of the date string array does not match
-        // than preserve orignal value and continue with next item
-        if (count($dateFieldNames) && !in_array($key, $dateFieldNames)) {
-          $newDateStr[$key] = $value;
-          continue;
-        }
-
-        $newDateStr[$key] = self::blankDateString($value);
-
-      }  // eo array loop
-
-      return $newDateStr;
-
-    }  // eo array handling
-
-
-    return self::blankDateString($dateStr);
-
-  }  // eo set empty strings to blank
-
+  public static $dateFormat = 'Y-m-d';
+  public static $timeFormat = 'H:i';
+  public static $dateTimeFormat = 'c';
 
 
   /**
-  * Set one "empty" date string to blank.
+  * Format a unix timestamp to a datetime. Accepts string.
+  * False can be used as empty datetime. Null and true are 'now'.
   */
-  public static function blankDateString($dateStr) {
+  public static function formatDateTime($stamp = null, $format = null) {
 
-    $dateStr = trim($dateStr);
+    if ($stamp === null || $stamp === true) {
+      $stamp = time();
+    }
+    elseif (is_string($stamp)) {
+      $stamp = trim($stamp);
+      // handle sql-nulldate
+      if (substr($stamp, 0, 10) == '0000-00-00') {
+        $stamp = '';
+      }
+    }
 
-    // handle sql-nulldate, empty strings, false and null
-    if (!$timeStr || substr($timeStr, 0, 10) == '0000-00-00') {
+    // handle empty strings and false
+    if (!$stamp) {
       return '';
     }
 
-    // do NOT check if timestring is valid!
-    // TODO maybe set invalid timestrings to blank?
-    return $timeStr;
+    // convert to time and format the result
+    return date(($format ?: self::$dateTimeFormat), strtotime($stamp));
 
-  }  // eo set one empty string to blank
+  }  // eo format datetime
+
+
+
+  /**
+  * Format a unix timestamp to a date.
+  */
+  public static function formatDate($stamp = null, $format = null) {
+    return self::formatDateTime($stamp, ($format ?: self::$dateFormat));
+  }  // eo format date
+
+
+  /**
+  * Format a unix timestamp with ansi date format.
+  */
+  public static function formatAnsiDate($stamp = null) {
+    return self::formatDateTime($stamp, 'Y-m-d');
+  }  // eo format ansi date
+
+
+  /**
+  * Format a unix timestamp to a time.
+  */
+  public static function formatTime($stamp = null, $format = null) {
+    return self::formatDateTime($stamp, ($format ?: self::$timeFormat));
+  }  // eo format time
 
 
 
