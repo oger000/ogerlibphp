@@ -109,10 +109,8 @@ class Duration {
     // replace every non arithmetic chars to have *some* security
     // replace european decimal sign
     if (substr($inStr, 0, 1) == '=') {
-      $inStr = trim(substr($inStr, 1));
       $inStr = strtr($inStr, ',', '.');
-      $inStr = preg_replace('/[^0-9\. \+\-\*\/\(\)]+/', '', $inStr);
-      $inStr = '#' . eval('return ' . $inStr . ';');
+      $inStr = '#' . OgerFunc::evalMath(substr($inStr,1));
     }
 
     // ANOTHER UNDOCUMENTED HACK:

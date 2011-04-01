@@ -50,6 +50,18 @@ class OgerFunc {
   }  // eo assoc check
 
 
-}
+  /**
+  * Evaluate an arithmetic expressoin from string.
+  * Only base arithmetic works because of security reasons.
+  */
+  public static function evalMath($str) {
+    $str = preg_replace('/[^0-9\. \+\-\*\/\(\)]+/', '', $str);
+    return eval('return ' . $str . ';');
+  }
+
+
+
+
+}  // eo class
 
 ?>

@@ -6,14 +6,17 @@
 
 
 
-require_once('lib/fpdf/fpdf.php');
+//utf8_decode()
 
 
 /**
 * Extends pdf library.
 * Should work for FPDF and TCPDF.
 */
+require_once('lib/fpdf/fpdf.php');
 class OgerPdf extends FPDF {
+//require_once('lib/tcpdf/tcpdf.php');
+//class OgerPdf extends TCPDF {
 
   /**
   * Constructor.
@@ -33,8 +36,8 @@ class OgerPdf extends FPDF {
   */
   public function useTpl($tpl, $params = array()) {
 
-    $tpl = str_replace("\r\n", "\n");
-    $tpl = str_replace("\r", "\n");
+    $tpl = str_replace("\r\n", "\n", $tpl);
+    $tpl = str_replace("\r", "\n", $tpl);
 
     $lines = explode("\n", $tpl);
     foreach ($lines as $line) {
@@ -71,7 +74,7 @@ class OgerPdf extends FPDF {
   /**
   * Clip cell at given width
   */
-  public ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null);
+  public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
 
     while (strlen($text) > 0 && $this->GetStringWidth($text) > $width) {
       $text = substr(0, -1, $text);
@@ -84,14 +87,29 @@ class OgerPdf extends FPDF {
   ########## TEMPLATE BEGIN ##########
 
   /**
+  * Prepare opts from template
+  */
+  public function tplPrepOpts($opts) {
+
+    foreach ($opts as $key => &$value) {
+      if (substr($value, 0, 1) == "=") {
+        $value = OgerFunc::evalMath(substr($value, 1));
+      }
+    }
+
+    return $opts;
+  }  // eo prepare tpl opts
+
+
+  /**
   * Set X and Y coordinate from template notation
   */
   public function tplSetXY($opts) {
 
-    list ($x, $y) = explode(',', $opts);
-
-    if ($x !== '' || $x === null) { $this->setX($x); }
-    if ($y !== '' || $y === null) { $this->setY($y); }
+    list ($x, $y) = $this->tplPrepOpts(explode(',', $opts));
+Dev::debug("x=$x, y=$y");
+    if ($x !== '' && $x !== null) { $this->setX($x); }
+    if ($y !== '' && $y !== null) { $this->setY($y); }
 
   }  // eo tpl set xy
 
@@ -101,7 +119,7 @@ class OgerPdf extends FPDF {
   */
   public function tplSetFont($opts) {
 
-    list($family, $style, $size) = explode(',', $opts);
+    list($family, $style, $size) = $this->tplPrepOpts(explode(',', $opts));
     $this->setFont($family, $style, $size);
 
   }  // eo tpl set font
@@ -112,7 +130,7 @@ class OgerPdf extends FPDF {
   */
   public function tplCell($opts, $text) {
 
-    list($width, $height, $border, $ln, $align, $fill, $link) = explode(',', $opts);
+    list($width, $height, $border, $ln, $align, $fill, $link) = $this->tplPrepOpts(explode(',', $opts));
     $this->ClippedCell($width, $height, $text, $border, $ln, $align, $fill, $link);
 
   }  // eo tpl cell output
