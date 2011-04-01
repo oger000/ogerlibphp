@@ -42,26 +42,35 @@ class OgerPdf extends FPDF {
     $lines = explode("\n", $tpl);
     foreach ($lines as $line) {
 
-      // replace params
-      foreach ($params as $key => $value) {
-        $tpl = str_replace("{$key}", $value, $line);
+      if (substr($line, 0, 1) == '#' || substr($line, 0, 2) == '//' || !$line) {
+        continue;
       }
 
-      list ($code, $line) = explode(':', $line, 2);
-      list ($opts, $text) = explode('#', $line, 2);
+      // replace params
+      foreach ($params as $key => $value) {
+        $line = str_replace("{" . $key . "}", $value, $line);
+      }
 
+      list ($opts, $text) = explode('#', $line, 2);
       $opts = str_replace(' ', '', $opts);
       $opts = str_replace('~', ' ', $opts);
+      $opts = explode(':', $opts);
+
+      $code = array_shift($opts);
 
       switch ($code) {
       case 'FONT':
-        $this->tplFont($font);
+        $this->tplSetFont($opts[0]);
         break;
       case 'CELLAT':
-        list ($pos, $cell, $font) = explode(':', $opts);
+        list ($pos, $cell, $font) = $opts;
         $this->tplSetXY($pos);
         $this->tplSetFont($font);
         $this->tplCell($cell, $text);
+        break;
+      case 'RECT':
+        list ($rect, $border, $fill) = $opts;
+        $this->tplRect($rect, $border, $fill);
         break;
       } // eo code
 
@@ -77,7 +86,7 @@ class OgerPdf extends FPDF {
   public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
 
     while (strlen($text) > 0 && $this->GetStringWidth($text) > $width) {
-      $text = substr(0, -1, $text);
+      $text = substr($text, 0, -1);
     }
     $this->Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
 
@@ -107,9 +116,10 @@ class OgerPdf extends FPDF {
   public function tplSetXY($opts) {
 
     list ($x, $y) = $this->tplPrepOpts(explode(',', $opts));
-Dev::debug("x=$x, y=$y");
-    if ($x !== '' && $x !== null) { $this->setX($x); }
-    if ($y !== '' && $y !== null) { $this->setY($y); }
+
+    if ($x === '' || $x === null) { $x = $this->getX(); }
+    if ($y === '' || $y === null) { $y = $this->getY(); }
+    $this->setXY($x, $y);
 
   }  // eo tpl set xy
 
@@ -126,11 +136,42 @@ Dev::debug("x=$x, y=$y");
 
 
   /**
+  * Output rectangle
+  */
+  public function tplRect($rect, $border, $fill) {
+
+    list($x, $y, $width, $height, $style) = $this->tplPrepOpts(explode(',', $rect));
+    $this->Rect($x, $y, $width, $height, $style);
+
+  }  // eo tpl set font
+
+
+  /**
   * Output cell from template notation
   */
   public function tplCell($opts, $text) {
 
-    list($width, $height, $border, $ln, $align, $fill, $link) = $this->tplPrepOpts(explode(',', $opts));
+    list($width, $height, $borderInfo, $ln, $align, $fillInfo, $link) = $this->tplPrepOpts(explode(',', $opts));
+
+    if ($borderInfo) {
+      list ($border, $thick, $color) = $this->tplPrepOpts(explode('|', $borderInfo));
+      if ($thick !== '' && $thick !== null) {
+        $this->SetLineWidth($thick);
+      }
+      if ($color !== '' && $color !== null) {
+        list ($red, $grenn, $blue) = explode('!', $color);
+        $this->SetDrawColor($red, $green, $blue);
+      }
+    }  // eo border info
+
+    if ($fillInfo) {
+      list ($fill, $color) = $this->tplPrepOpts(explode('|', $fillInfo));
+      if ($color !== '' && $color !== null) {
+        list ($red, $grenn, $blue) = explode('!', $color);
+        $this->SetFillColor($red, $green, $blue);
+      }
+    }  // eo border info
+
     $this->ClippedCell($width, $height, $text, $border, $ln, $align, $fill, $link);
 
   }  // eo tpl cell output
