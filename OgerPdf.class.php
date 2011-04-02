@@ -13,16 +13,18 @@
 * Extends pdf library.
 * Should work for FPDF and TCPDF.
 */
+/*
 require_once('lib/fpdf/fpdf.php');
 class OgerPdf extends FPDF {
-//require_once('lib/tcpdf/tcpdf.php');
-//class OgerPdf extends TCPDF {
+*/
+require_once('lib/tcpdf/tcpdf.php');
+class OgerPdf extends TCPDF {
 
   /**
   * Constructor.
   */
   public function __construct($orientation = 'P', $unit = 'mm', $format = 'A4',           // FPDF
-                              $unicode = true, $encoding = 'UTF-8', $diskcace = false) {  // additional for TCPDF
+                              $unicode = true, $encoding = 'UTF-8', $diskcace = false) {  // additional parameters for TCPDF
 
     parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskspace);
 
@@ -34,11 +36,16 @@ class OgerPdf extends FPDF {
   * @tpl: Template
   * @params: assocoiative array with variableName => value pairs.
   */
-  public function useTpl($tpl, $params = array()) {
+  public function tplUse($tpl, $params = array()) {
 
     $tpl = str_replace("\r\n", "\n", $tpl);
     $tpl = str_replace("\r", "\n", $tpl);
 
+    // remove blocks
+    $tpl = preg_replace('/^\{.*?^\}/ms', '', $tpl);
+//Dev::debugVar($tpl);
+var_dump($tpl);
+exit;
     $lines = explode("\n", $tpl);
     foreach ($lines as $line) {
 
