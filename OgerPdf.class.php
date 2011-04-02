@@ -31,6 +31,24 @@ class OgerPdf extends TCPDF {
   }  // eo constructor
 
 
+
+
+  /**
+  * Clip cell at given width
+  */
+  public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
+
+    while (strlen($text) > 0 && $this->GetStringWidth($text) > $width) {
+      $text = substr($text, 0, -1);
+    }
+    $this->Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
+
+  }  // eo clipped cell
+
+
+  ########## TEMPLATE BEGIN ##########
+
+
   /**
   * Use template
   * @tpl: Template
@@ -43,9 +61,6 @@ class OgerPdf extends TCPDF {
 
     // remove blocks
     $tpl = preg_replace('/^\{.*?^\}/ms', '', $tpl);
-//Dev::debugVar($tpl);
-var_dump($tpl);
-exit;
     $lines = explode("\n", $tpl);
     foreach ($lines as $line) {
 
@@ -59,13 +74,13 @@ exit;
       }
 
       list ($opts, $text) = explode('#', $line, 2);
+      list ($code, $opts) = explode(' ', trim($opts), 2);
+
       $opts = str_replace(' ', '', $opts);
       $opts = str_replace('~', ' ', $opts);
-      $opts = explode(':', $opts);
+      $opts = $this->tplParseOpts($opts);
 
-      $code = array_shift($opts);
-
-      switch ($code) {
+      switch (trim($code)) {
       case 'FONT':
         $this->tplSetFont($opts[0]);
         break;
@@ -88,41 +103,81 @@ exit;
 
 
   /**
-  * Clip cell at given width
+  * Parse opts from template
   */
-  public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
+  public function tplParseOpts(&$opts) {
 
-    while (strlen($text) > 0 && $this->GetStringWidth($text) > $width) {
-      $text = substr($text, 0, -1);
-    }
-    $this->Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
+    $optBlock = array();
+    $value = '';
+    while (strlen($opts) > 0) {
+      $char = substr($opts, 0, 1);
+      $opts = substr($opts, 1);
+      switch ($char) {
+      case ',':
+      case ']':
+        if (substr($value, 0, 1) == "=") {
+          $value = OgerFunc::evalMath(substr($value, 1));
+        }
+        $optBlock[] = $value;
+        $value = '';
+        break;
+      case '[':
+        $optBlock[] = $this->tplParseOpts($opts);
+        break;
+      default:
+        $value .= $char;
+      }
 
-  }  // eo clipped cell
+      // end of block
+      if ($char == ']') {
+        // if closing char is followed by a comma
+        // than remove this to avoid undesired empty extraoption
+        if (substr($opts, 0, 1) == ',') {
+          $opts = substr($opts, 1);
+        }
+        return $optBlock;
+      }
 
+    }  // eo char loop
 
-  ########## TEMPLATE BEGIN ##########
+    // script should only reach this point only at top level of recursion
+    // otherwise if the last block is not closed with ]
+    // the last value is dropped silently
+    return $optBlock;
+
+  }  // eo parse tpl opts
+
 
   /**
-  * Prepare opts from template
+  * Get marked blocks from template
   */
-  public function tplPrepOpts($opts) {
+  public function tplGetBlocks($tpl) {
 
-    foreach ($opts as $key => &$value) {
-      if (substr($value, 0, 1) == "=") {
-        $value = OgerFunc::evalMath(substr($value, 1));
-      }
+    preg_match_all('/^\{(.*?$)(.*?)^\}/ms', $tpl, $matches);
+
+    $blocks = array();
+    for ($i = 0; $i < count($matches[1]) ; $i++) {
+      $blocks[trim($matches[1][$i])] = trim($matches[2][$i]);
     }
 
-    return $opts;
-  }  // eo prepare tpl opts
+    return $blocks;
+  }  // get marked blocks
 
+
+  /**
+  * Get named block from template
+  */
+  public function tplGetBlock($tpl, $name) {
+    $blocks = $this->tplGetBlocks($tpl);
+    return $blocks[$name];
+  }  // get named block
 
   /**
   * Set X and Y coordinate from template notation
   */
   public function tplSetXY($opts) {
 
-    list ($x, $y) = $this->tplPrepOpts(explode(',', $opts));
+    list ($x, $y) = $opts;
 
     if ($x === '' || $x === null) { $x = $this->getX(); }
     if ($y === '' || $y === null) { $y = $this->getY(); }
@@ -136,7 +191,7 @@ exit;
   */
   public function tplSetFont($opts) {
 
-    list($family, $style, $size) = $this->tplPrepOpts(explode(',', $opts));
+    list($family, $style, $size) = $opts;
     $this->setFont($family, $style, $size);
 
   }  // eo tpl set font
@@ -147,7 +202,7 @@ exit;
   */
   public function tplRect($rect, $border, $fill) {
 
-    list($x, $y, $width, $height, $style) = $this->tplPrepOpts(explode(',', $rect));
+    list($x, $y, $width, $height, $style) = $rect;
     $this->Rect($x, $y, $width, $height, $style);
 
   }  // eo tpl set font
@@ -158,10 +213,10 @@ exit;
   */
   public function tplCell($opts, $text) {
 
-    list($width, $height, $borderInfo, $ln, $align, $fillInfo, $link) = $this->tplPrepOpts(explode(',', $opts));
+    list($width, $height, $borderInfo, $ln, $align, $fillInfo, $link) = $opts;
 
     if ($borderInfo) {
-      list ($border, $thick, $color) = $this->tplPrepOpts(explode('|', $borderInfo));
+      list ($border, $thick, $color) = $borderInfo;
       if ($thick !== '' && $thick !== null) {
         $this->SetLineWidth($thick);
       }
@@ -172,9 +227,9 @@ exit;
     }  // eo border info
 
     if ($fillInfo) {
-      list ($fill, $color) = $this->tplPrepOpts(explode('|', $fillInfo));
+      list ($fill, $color) = $fillInfo;
       if ($color !== '' && $color !== null) {
-        list ($red, $grenn, $blue) = explode('!', $color);
+        list ($red, $green, $blue) = $color;
         $this->SetFillColor($red, $green, $blue);
       }
     }  // eo border info
