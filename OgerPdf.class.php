@@ -5,10 +5,6 @@
 */
 
 
-
-//utf8_decode()
-
-
 /**
 * Extends pdf library.
 * Should work for FPDF and TCPDF.
@@ -61,9 +57,11 @@ class OgerPdf extends TCPDF {
 
     // remove blocks
     $tpl = preg_replace('/^\{.*?^\}/ms', '', $tpl);
+
     $lines = explode("\n", $tpl);
     foreach ($lines as $line) {
 
+      $line = ltrim($line);
       if (substr($line, 0, 1) == '#' || substr($line, 0, 2) == '//' || !$line) {
         continue;
       }
@@ -73,12 +71,12 @@ class OgerPdf extends TCPDF {
         $line = str_replace("{" . $key . "}", $value, $line);
       }
 
-      list ($opts, $text) = explode('#', $line, 2);
-      list ($code, $opts) = explode(' ', trim($opts), 2);
-
-      $opts = str_replace(' ', '', $opts);
-      $opts = str_replace('~', ' ', $opts);
+      list ($code, $opts, $text) = explode(':', $line, 3);
       $opts = $this->tplParseOpts($opts);
+
+      if (get_parent_class($this) == 'FPDF') {
+        $text = utf8_decode($text);
+      }
 
       switch (trim($code)) {
       case 'FONT':
@@ -105,7 +103,14 @@ class OgerPdf extends TCPDF {
   /**
   * Parse opts from template
   */
-  public function tplParseOpts(&$opts) {
+  public function tplParseOpts(&$opts, $inBlock = false) {
+
+    // if not in block than this is the inial call
+    // and we have to prepare the opts string
+    if (!$inBlock) {
+      $opts = str_replace(' ', '', $opts);
+      $opts = str_replace('~', ' ', $opts);
+    }
 
     $optBlock = array();
     $value = '';
@@ -122,7 +127,7 @@ class OgerPdf extends TCPDF {
         $value = '';
         break;
       case '[':
-        $optBlock[] = $this->tplParseOpts($opts);
+        $optBlock[] = $this->tplParseOpts($opts, true);
         break;
       default:
         $value .= $char;
@@ -141,8 +146,15 @@ class OgerPdf extends TCPDF {
     }  // eo char loop
 
     // script should only reach this point only at top level of recursion
-    // otherwise if the last block is not closed with ]
-    // the last value is dropped silently
+    // otherwise if the last block is not closed with ']'
+    // Try to correct silently by adding current value (or an empty one)
+    if ($inBlock) {
+      if (substr($value, 0, 1) == "=") {
+        $value = OgerFunc::evalMath(substr($value, 1));
+      }
+      $optBlock[] = $value;
+    }
+
     return $optBlock;
 
   }  // eo parse tpl opts
