@@ -71,16 +71,34 @@ class OgerPdf extends TCPDF {
         $line = str_replace("{" . $key . "}", $value, $line);
       }
 
-      list ($code, $opts, $text) = explode(':', $line, 3);
+      list ($cmd, $opts, $text) = explode(':', $line, 3);
       $opts = $this->tplParseOpts($opts);
 
       if (get_parent_class($this) == 'FPDF') {
         $text = utf8_decode($text);
       }
 
-      switch (trim($code)) {
+      switch (trim($cmd)) {
       case 'FONT':
         $this->tplSetFont($opts[0]);
+        break;
+      case 'LINEDEF':
+        $this->tplSetLineDef($opts[0]);
+        break;
+      case 'DRAWCOL':
+        $this->tplSetDrawCol($opts[0]);
+        break;
+      case 'FILLCOL':
+        $this->tplSetFillCol($opts[0]);
+        break;
+      case 'RECT':
+        list ($rect, $lineDef, $fill) = $opts;
+        $this->tplRect($rect, $lineDef, $fill);
+        break;
+      case 'CELL':
+        list ($cell, $font) = $opts;
+        $this->tplSetFont($font);
+        $this->tplCell($cell, $text);
         break;
       case 'CELLAT':
         list ($pos, $cell, $font) = $opts;
@@ -88,11 +106,18 @@ class OgerPdf extends TCPDF {
         $this->tplSetFont($font);
         $this->tplCell($cell, $text);
         break;
-      case 'RECT':
-        list ($rect, $border, $fill) = $opts;
-        $this->tplRect($rect, $border, $fill);
+      case 'MCELL':
+        list ($cell, $font) = $opts;
+        $this->tplSetFont($font);
+        $this->tplMultiCell($cell, $text);
         break;
-      } // eo code
+      case 'MCELLAT':
+        list ($pos, $cell, $font) = $opts;
+        $this->tplSetXY($pos);
+        $this->tplSetFont($font);
+        $this->tplMultiCell($cell, $text);
+        break;
+      } // eo cmd
 
     }  // eo line loop
 
@@ -160,6 +185,7 @@ class OgerPdf extends TCPDF {
   }  // eo parse tpl opts
 
 
+
   /**
   * Get marked blocks from template
   */
@@ -174,6 +200,7 @@ class OgerPdf extends TCPDF {
 
     return $blocks;
   }  // get marked blocks
+
 
 
   /**
@@ -198,8 +225,9 @@ class OgerPdf extends TCPDF {
   }  // eo tpl set xy
 
 
+
   /**
-  * Set font from template notation
+  * Set template font
   */
   public function tplSetFont($opts) {
 
@@ -209,47 +237,121 @@ class OgerPdf extends TCPDF {
   }  // eo tpl set font
 
 
+
+  /**
+  * Set template line definition
+  */
+  public function tplSetLineDef($lineDef) {
+
+    list($thick, $color) = $lineDef;
+    if ($thick !== '' && $thick !== null) {
+      $this->setLineWidth($thick);
+    }
+    $this->tplSetDrawColor($color);
+  }  // eo set line def
+
+
+
+  /**
+  * Set template draw color
+  */
+  public function tplSetDrawColor($color) {
+
+    if (!$color) {
+      return;
+    }
+
+    list($red, $green, $blue) = $color;
+    $this->setDrawColor($red, $green, $blue);
+  }  // eo set draw color
+
+
+
+  /**
+  * Set template fill color
+  */
+  public function tplSetFillColor($color) {
+
+    if (!$color) {
+      return;
+    }
+
+    list($red, $green, $blue) = $color;
+    $this->setFillColor($red, $green, $blue);
+  }  // eo set fill color
+
+
+
   /**
   * Output rectangle
   */
-  public function tplRect($rect, $border, $fill) {
+  public function tplRect($rect, $lineDef, $fill) {
 
-    list($x, $y, $width, $height, $style) = $rect;
+    $this->tplSetLineDef($lineDef);
+    $this->tplSetFillColor($fill);
+
+    list ($x, $y, $width, $height, $style) = $rect;
     $this->Rect($x, $y, $width, $height, $style);
 
   }  // eo tpl set font
 
 
+
   /**
-  * Output cell from template notation
+  * Output tmplate cell
   */
   public function tplCell($opts, $text) {
 
-    list($width, $height, $borderInfo, $ln, $align, $fillInfo, $link) = $opts;
+    list($width, $height, $borderDef, $ln, $align, $fillDef, $link) = $opts;
 
-    if ($borderInfo) {
-      list ($border, $thick, $color) = $borderInfo;
-      if ($thick !== '' && $thick !== null) {
-        $this->SetLineWidth($thick);
+    if ($borderDef) {
+      if (!is_array($borderDef)) {
+        $borderDef = array($borderDef);
       }
-      if ($color !== '' && $color !== null) {
-        list ($red, $grenn, $blue) = explode('!', $color);
-        $this->SetDrawColor($red, $green, $blue);
-      }
-    }  // eo border info
+      list ($border, $lineDef) = $borderDef;
+      $this->tplSetLineDef($lineDef);
+    }
 
-    if ($fillInfo) {
-      list ($fill, $color) = $fillInfo;
-      if ($color !== '' && $color !== null) {
-        list ($red, $green, $blue) = $color;
-        $this->SetFillColor($red, $green, $blue);
+    if ($fillDef) {
+      if (!is_array($fillDef)) {
+        $fillDef = array($fillDef);
       }
-    }  // eo border info
+      list ($fill, $color) = $fillDef;
+      $this->tplSetFillColor($color);
+    }
 
     $this->ClippedCell($width, $height, $text, $border, $ln, $align, $fill, $link);
 
   }  // eo tpl cell output
 
+
+
+  /**
+  * Output template multicell
+  */
+  public function tplMultiCell($opts, $text) {
+
+    list($width, $height, $borderDef, $ln, $align, $fillDef) = $opts;
+
+    if ($borderDef) {
+      if (!is_array($borderDef)) {
+        $borderDef = array($borderDef);
+      }
+      list ($border, $lineDef) = $borderDef;
+      $this->tplSetLineDef($lineDef);
+    }
+
+    if ($fillDef) {
+      if (!is_array($fillDef)) {
+        $fillDef = array($fillDef);
+      }
+      list ($fill, $color) = $fillDef;
+      $this->tplSetFillColor($color);
+    }
+
+    $this->MultiCell($width, $height, $text, $border, $ln, $align, $fill);
+
+  }  // eo tpl multi cell
 
   ########## TEMPLATE END ##########
 
