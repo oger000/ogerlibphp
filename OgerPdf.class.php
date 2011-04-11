@@ -6,8 +6,10 @@
 
 
 /**
-* Extends pdf library.
-* Should work for FPDF and TCPDF.
+* Extends tcpdf library.
+* NOT FULLY TESTED WITH FPDF
+* Should work for FPDF too, but not all features are supported:
+* - Maxheight of MultiCell
 */
 /*
 require_once('lib/fpdf/fpdf.php');
@@ -34,10 +36,10 @@ class OgerPdf extends TCPDF {
   */
   public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
 
-    while (strlen($text) > 0 && $this->GetStringWidth($text) > $width) {
+    while (strlen($text) > 0 && parent::GetStringWidth($text) > $width) {
       $text = substr($text, 0, -1);
     }
-    $this->Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
+    parent::Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
 
   }  // eo clipped cell
 
@@ -50,78 +52,127 @@ class OgerPdf extends TCPDF {
   * @tpl: Template
   * @params: assocoiative array with variableName => value pairs.
   */
-  public function tplUse($tpl, $params = array()) {
+  public function tplUse($tpl, $placeholders = array()) {
 
+    // unify newlines
     $tpl = str_replace("\r\n", "\n", $tpl);
     $tpl = str_replace("\r", "\n", $tpl);
 
     // remove blocks
-    $tpl = preg_replace('/^\{.*?^\}/ms', '', $tpl);
+    $tpl = preg_replace('/^::\{::.*?^::\}::/ms', '', $tpl);
+
+    // replace placeholders
+    foreach ($placeholders as $key => $value) {
+      $tpl = str_replace("{" . $key . "}", $value, $tpl);
+    }
+
+    // fake first command
+    $cmd = '::#::';
+    $opts = '';
+    $text = '';
 
     $lines = explode("\n", $tpl);
-    foreach ($lines as $line) {
+    for ($i=0; $i < count($lines); $i++) {
 
-      $line = ltrim($line);
-      if (substr($line, 0, 1) == '#' || substr($line, 0, 2) == '//' || !$line) {
-        continue;
+      $line = $lines[$i];
+      list($dummy, $tmpCmd, $tmpOpts, $tmpText) = explode('::', $line, 4);
+
+      // if line does not start with '::' or the extracted command is not valid
+      // we treat this as continuation line. Should reduce the danger of continuation lines.
+      if (substr($line, 0, 2) !== '::' || !$this->tplExecuteCmd($tmpCmd, '', '', true)) {
+        $text .= "\n" . $line;
+        // the last line cannot have a continous line
+      }
+      else {
+        // execute buffered command
+        $this->tplExecuteCmd($cmd, $opts, $text, false);
+        // buffer current line info
+        $cmd = $tmpCmd;
+        $opts = $tmpOpts;
+        $text = $tmpText;
       }
 
-      // replace params
-      foreach ($params as $key => $value) {
-        $line = str_replace("{" . $key . "}", $value, $line);
-      }
+    }  // line loop
 
-      list ($cmd, $opts, $text) = explode(':', $line, 3);
-      $opts = $this->tplParseOpts($opts);
-
-      if (get_parent_class($this) == 'FPDF') {
-        $text = utf8_decode($text);
-      }
-
-      switch (trim($cmd)) {
-      case 'FONT':
-        $this->tplSetFont($opts[0]);
-        break;
-      case 'LINEDEF':
-        $this->tplSetLineDef($opts[0]);
-        break;
-      case 'DRAWCOL':
-        $this->tplSetDrawCol($opts[0]);
-        break;
-      case 'FILLCOL':
-        $this->tplSetFillCol($opts[0]);
-        break;
-      case 'RECT':
-        list ($rect, $lineDef, $fill) = $opts;
-        $this->tplRect($rect, $lineDef, $fill);
-        break;
-      case 'CELL':
-        list ($cell, $font) = $opts;
-        $this->tplSetFont($font);
-        $this->tplCell($cell, $text);
-        break;
-      case 'CELLAT':
-        list ($pos, $cell, $font) = $opts;
-        $this->tplSetXY($pos);
-        $this->tplSetFont($font);
-        $this->tplCell($cell, $text);
-        break;
-      case 'MCELL':
-        list ($cell, $font) = $opts;
-        $this->tplSetFont($font);
-        $this->tplMultiCell($cell, $text);
-        break;
-      case 'MCELLAT':
-        list ($pos, $cell, $font) = $opts;
-        $this->tplSetXY($pos);
-        $this->tplSetFont($font);
-        $this->tplMultiCell($cell, $text);
-        break;
-      } // eo cmd
-
-    }  // eo line loop
+    // excute last buffered command
+    $this->tplExecuteCmd($cmd, $opts, $text, false);
 
   }  // eo use template
+
+
+  /**
+  * Execute template command
+  * @cmd: Command name.
+  * @opts: Unparsed options string.
+  * @text: Text.
+  * @checkOnly: True to do a checkonly run without executing the command.
+  */
+  public function tplExecuteCmd($cmd, $opts = '', $text = '', $checkOnly = false) {
+
+    $opts = $this->tplParseOpts($opts);
+
+    if (get_parent_class($this) == 'FPDF') {
+      $text = utf8_decode($text);
+    }
+
+    switch ($cmd) {
+    case '//':
+    case '#':
+      if ($checkOnly) { return true; }
+      return true;
+      break;
+    case 'FONT':
+      if ($checkOnly) { return true; }
+      $this->tplSetFont($opts[0]);
+      break;
+    case 'LINEDEF':
+      if ($checkOnly) { return true; }
+      $this->tplSetLineDef($opts[0]);
+      break;
+    case 'DRAWCOL':
+      if ($checkOnly) { return true; }
+      $this->tplSetDrawCol($opts[0]);
+      break;
+    case 'FILLCOL':
+      if ($checkOnly) { return true; }
+      $this->tplSetFillCol($opts[0]);
+      break;
+    case 'RECT':
+      if ($checkOnly) { return true; }
+      list ($rect, $lineDef, $fill) = $opts;
+      $this->tplRect($rect, $lineDef, $fill);
+      break;
+    case 'CELL':
+      if ($checkOnly) { return true; }
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplCell($cell, $text);
+      break;
+    case 'CELLAT':
+      if ($checkOnly) { return true; }
+      list ($pos, $cell, $font) = $opts;
+      $this->tplSetXY($pos);
+      $this->tplSetFont($font);
+      $this->tplCell($cell, $text);
+      break;
+    case 'MCELL':
+      if ($checkOnly) { return true; }
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplMultiCell($cell, $text);
+      break;
+    case 'MCELLAT':
+      if ($checkOnly) { return true; }
+      list ($pos, $cell, $font) = $opts;
+      $this->tplSetXY($pos);
+      $this->tplSetFont($font);
+      $this->tplMultiCell($cell, $text);
+      break;
+    } // eo execute cmd
+
+    if ($checkOnly) { return true; }
+
+  }  // eo execute template command
 
 
 
@@ -218,9 +269,9 @@ class OgerPdf extends TCPDF {
 
     list ($x, $y) = $opts;
 
-    if ($x === '' || $x === null) { $x = $this->getX(); }
-    if ($y === '' || $y === null) { $y = $this->getY(); }
-    $this->setXY($x, $y);
+    if ($x === '' || $x === null) { $x = parent::GetX(); }
+    if ($y === '' || $y === null) { $y = parent::GetY(); }
+    parent::SetXY($x, $y);
 
   }  // eo tpl set xy
 
@@ -232,7 +283,7 @@ class OgerPdf extends TCPDF {
   public function tplSetFont($opts) {
 
     list($family, $style, $size) = $opts;
-    $this->setFont($family, $style, $size);
+    parent::SetFont($family, $style, $size);
 
   }  // eo tpl set font
 
@@ -245,7 +296,7 @@ class OgerPdf extends TCPDF {
 
     list($thick, $color) = $lineDef;
     if ($thick !== '' && $thick !== null) {
-      $this->setLineWidth($thick);
+      parent::SetLineWidth($thick);
     }
     $this->tplSetDrawColor($color);
   }  // eo set line def
@@ -262,7 +313,7 @@ class OgerPdf extends TCPDF {
     }
 
     list($red, $green, $blue) = $color;
-    $this->setDrawColor($red, $green, $blue);
+    parent::SetDrawColor($red, $green, $blue);
   }  // eo set draw color
 
 
@@ -277,7 +328,7 @@ class OgerPdf extends TCPDF {
     }
 
     list($red, $green, $blue) = $color;
-    $this->setFillColor($red, $green, $blue);
+    parent::SetFillColor($red, $green, $blue);
   }  // eo set fill color
 
 
@@ -291,7 +342,7 @@ class OgerPdf extends TCPDF {
     $this->tplSetFillColor($fill);
 
     list ($x, $y, $width, $height, $style) = $rect;
-    $this->Rect($x, $y, $width, $height, $style);
+    parent::Rect($x, $y, $width, $height, $style);
 
   }  // eo tpl set font
 
@@ -331,7 +382,8 @@ class OgerPdf extends TCPDF {
   */
   public function tplMultiCell($opts, $text) {
 
-    list($width, $height, $borderDef, $ln, $align, $fillDef) = $opts;
+    list($width, $height, $borderDef, $align, $fillDef,
+         $ln, $x, $y, $resetH, $stretch, $isHtml, $autoPadding, $maxHeight, $vAlign, $fitCell) = $opts;
 
     if ($borderDef) {
       if (!is_array($borderDef)) {
@@ -349,7 +401,8 @@ class OgerPdf extends TCPDF {
       $this->tplSetFillColor($color);
     }
 
-    $this->MultiCell($width, $height, $text, $border, $ln, $align, $fill);
+    parent::MultiCell($width, $height, $text, $border, $align, $fill,
+                      $ln, $x, $y, $resetH, $stretch, $isHtml, $autoPadding, $maxHeight, $vAlign, $fitCell);
 
   }  // eo tpl multi cell
 
