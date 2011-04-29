@@ -533,7 +533,7 @@ class Db {
 
     $stmt = "`" . $columnDef['COLUMN_NAME'] . "` " .
             $columnDef['COLUMN_TYPE'] .
-            ($columnDef['IS_NULLABLE'] == 'YES' ? '' : ' NOT NULL') .
+            ($columnDef['IS_NULLABLE'] == 'YES' ? '' : ' NOT') . '  NULL' .
             ($columnDef['COLUMN_DEFAULT'] ? " DEFAULT '" . $columnDef['COLUMN_DEFAULT'] . "'" : '');
 
     return $stmt;
