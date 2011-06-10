@@ -34,6 +34,10 @@ class TimeHelper {
       if (substr($stamp, 0, 10) == '0000-00-00') {
         $stamp = '';
       }
+      // convert string to timestamp
+      if ($stamp) {
+        $stamp = strtotime($stamp);
+      }
     }
 
     // handle empty strings and false
@@ -42,7 +46,7 @@ class TimeHelper {
     }
 
     // convert to time and format the result
-    return date(($format ?: self::$dateTimeFormat), strtotime($stamp));
+    return date(($format ?: self::$dateTimeFormat), $stamp);
 
   }  // eo format datetime
 
