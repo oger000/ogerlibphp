@@ -142,7 +142,7 @@ class Duration {
 
     for ($i=0; $i < strlen($inStr); $i++) {
       if (strpos("01234567890" . static::$delimChar, substr($inStr, $i, 1)) === false) {
-        throw new Exception(L::_("Ungültiges Zeichen in Zeitdauer: $inStrOri."));
+        throw new Exception(Oger::_("Ungültiges Zeichen in Zeitdauer: $inStrOri."));
       }
     }  // end of check chars
 
