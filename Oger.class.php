@@ -8,12 +8,13 @@
 
 
 /**
-* localisation support
+* Oger class.
+* To keep in sync with javascript Oger class.
 */
-class L {
+class Oger {
 
   /**
-  * translate text
+  * Translate text
   * TODO: implement (for now only a dummy to mark text for translation)
   */
   public static function _($text) {
