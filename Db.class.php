@@ -412,8 +412,8 @@ class Db {
 
 
     // FROM table reference(s)
-    if ($opts['tableName']) {
-      $stmt .= ' FROM ' . $opts['tableName'];
+    if ($opts['table']) {
+      $stmt .= ' FROM ' . $opts['table'];
     }
 
 
@@ -499,7 +499,12 @@ class Db {
           }
         }
         else {
-          $limit = '' . reset($opts['limit']);
+          if (is_array($opts['limit'])) {
+            $limit = '' . reset($opts['limit']);
+          }
+          else {
+            $limit = '' . $opts['limit'];
+          }
         }
         $stmt .= " LIMIT $limit";
       }
