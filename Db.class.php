@@ -252,12 +252,62 @@ class Db {
     }
 
     return ($withWhere ? ' WHERE ' : '') . $stmt;
-
   } // end of create where for prepared statement
 
 
+
   /**
-  * create prepared statement for insert or update
+  * create order by statement
+  */
+  public static function createOrderByStmt($fields, $withOrderBy = false) {
+
+    $stmt = '';
+    foreach ($fields as $key => $direction) {
+      $direction = ($direction ? strtoupper($direction) : 'ASC');
+      $stmt .= ($stmt ? ',' : '') . "$key $direction";
+    }
+
+    return ($withOrderBy ? ' ORDER BY ' : '') . $stmt;
+  } // eo create order by
+
+
+
+  /**
+  * Reverse order by statement
+  * orderBy: array with key=fieldname, value=direction pairs
+  *          or string with order by statement
+  */
+  public static function reverseOrderByStmt($orderBy) {
+
+    if (is_string($orderBy)) {
+      $orderStmt = trim($orderBy);
+      if (strtoupper(substr($orderStmt, 0, 8)) == "ORDER BY") {
+        $orderStmt = trim(substr($orderStmt, 8));
+        $withOrderBy = true;
+      }
+      $orderStmt = explode(',', $orderStmt);
+
+      $orderBy = array();
+      foreach ($orderStmt as $fieldStmt) {
+        $fieldStmt = trim($fieldStmt);
+        list($field, $direction) = preg_split('/\s+/', $fieldStmt, 2);
+        $orderBy[$field] = $direction;
+      }
+    }
+
+    foreach ($orderBy as $field => $direction) {
+      $direction = ($direction ? strtoupper($direction) : 'ASC');
+      // reverse
+      $direction = ($direction == 'ASC' ? 'DESC' : 'ASC');
+      $stmt .= ($stmt ? ',' : '') . "$field $direction";
+    }
+
+    return ($withOrderBy ? ' ORDER BY ' : '') . $stmt;
+  } // eo reverse order
+
+
+  /**
+  * create statement string for insert or update
   */
   public static function createStmt($action, $table, $fields, $where) {
 
@@ -292,8 +342,180 @@ class Db {
 
     return $stmt;
 
-  } // end of create prepared statement
+  } // end of create statement
 
+
+  /**
+  * Create statement for select
+  * Opts parameter consists of keywords array pairs where the array contains the data for the given keyword.
+  * If a string is given istead of an array than this string is used directly.
+  */
+  /* from mysql 5 docu
+    SELECT
+      [ALL | DISTINCT | DISTINCTROW ]
+        [HIGH_PRIORITY]
+        [STRAIGHT_JOIN]
+        [SQL_SMALL_RESULT] [SQL_BIG_RESULT] [SQL_BUFFER_RESULT]
+        [SQL_CACHE | SQL_NO_CACHE] [SQL_CALC_FOUND_ROWS]
+      select_expr [, select_expr ...]
+      [FROM table_references
+      [WHERE where_condition]
+      [GROUP BY {col_name | expr | position}
+        [ASC | DESC], ... [WITH ROLLUP]]
+      [HAVING where_condition]
+      [ORDER BY {col_name | expr | position}
+        [ASC | DESC], ...]
+      [LIMIT {[offset,] row_count | row_count OFFSET offset}]
+      [PROCEDURE procedure_name(argument_list)]
+      [INTO OUTFILE 'file_name' export_options
+        | INTO DUMPFILE 'file_name'
+        | INTO var_name [, var_name]]
+      [FOR UPDATE | LOCK IN SHARE MODE]]
+  */
+  public static function createSelectStmt($opts) {
+
+    $stmt = '';
+
+
+    // SELECT statment
+    if ($opts['select'] === false) {
+      // suppress 'SELECT' statement
+    }
+    else {
+      $stmt .= ($opts['select'] ?: 'SELECT');
+    }
+
+
+    // ALL, DISTINCT, PRIORITY, etc
+    if ($opts['extra']) {
+      if (is_string($opts['extra'])) {
+        $stmt .= ' ' . $opts['extra'];
+      }
+      else {
+        $stmt .= ' ' . implode(' ', $opts['extra']);
+      }
+    }
+
+
+    // result fields (if associative arrays use keys insted of values)
+    if ($opts['fields']) {
+      if (is_string($opts['fields'])) {
+        $stmt .= $opts['fields'];
+      }
+      else {
+        if (OgerFunc::isAssoc($opts['fields'])) {
+          $opts['fields'] = array_keys($opts['fields']);
+        }
+        $stmt .= ' ' . implode(' ', $opts['fields']);
+      }
+    }
+
+
+    // FROM table reference(s)
+    if ($opts['tableName']) {
+      $stmt .= ' FROM ' . $opts['tableName'];
+    }
+
+
+    // WHERE
+    if ($opts['where']) {
+      if (is_string($opts['where'])) {
+        $str = trim($opts['where']);
+        if (strtoupper(substr($str, 0, 5)) != "WHERE") {
+          $str = " WHERE $str";
+        }
+        $stmt .= $str;
+      }
+      else {
+        $stmt .= self::createWhereStmt($opts['where'], null, true);
+      }
+    }
+
+
+    // GROUP BY
+    if ($opts['groupBy']) {
+      if (is_string($opts['groupBy'])) {
+        $str = trim($opts['groupBy']);
+        if (strtoupper(substr($str, 0, 8)) != "GROUP BY") {
+          $str = " GROUP BY $str";
+        }
+        $stmt .= $str;
+      }
+      else {
+        if (OgerFunc::isAssoc($opts['groupBy'])) {
+          $opts['groupBy'] = array_keys($opts['groupBy']);
+        }
+        $stmt .= ' ' . implode(' ', $opts['groupBy']);
+      }
+    }
+
+
+    // HAVING
+    if ($opts['having']) {
+      if (is_string($opts['having'])) {
+        $str = trim($opts['having']);
+        if (strtoupper(substr($str, 0, 6)) != "HAVING") {
+          $str = " HAVING $str";
+        }
+        $stmt .= $str;
+      }
+      else {
+        $stmt .= ' HAVING ' . self::createWhereStmt($opts['having'], null, false);
+      }
+    }
+
+
+    // ORDER BY
+    if ($opts['orderBy']) {
+      if (is_string($opts['orderBy'])) {
+        $str = trim($opts['orderBy']);
+        if (strtoupper(substr($str, 0, 8)) != "ORDER BY") {
+          $str = " ORDER BY $str";
+        }
+        $stmt .= $str;
+      }
+      else {
+        $stmt .= self::createOrderByStmt($opts['orderBy'], true);
+      }
+    }
+
+
+    // LIMIT
+    if ($opts['limit']) {
+      if (is_string($opts['limit'])) {
+        $str = trim($opts['limit']);
+        if (strtoupper(substr($str, 0, 5)) != "LIMIT") {
+          $str = " LIMIT $str";
+        }
+        $stmt .= $str;
+      }
+      else {
+        if (count($opts['limit']) == 2) {
+          if (OgerFunc::isAssoc($opts['limit'])) {
+            $limit = $opts['limit']['start'] . ',' . $opts['limit']['limit'];
+          }
+          else {
+            $limit = implode(',', $opts['limit']);
+          }
+        }
+        else {
+          $limit = '' . reset($opts['limit']);
+        }
+        $stmt .= " LIMIT $limit";
+      }
+    }
+
+
+    // PROCEDURE
+
+    // lock options
+    //if ($opts['lock']) {
+
+
+    // return full statement
+    return $stmt;
+
+  } // eo create select statement
 
 
 
