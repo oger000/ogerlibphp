@@ -400,7 +400,7 @@ class Db {
     // result fields (if associative arrays use keys insted of values)
     if ($opts['fields']) {
       if (is_string($opts['fields'])) {
-        $stmt .= $opts['fields'];
+        $stmt .= ' ' . $opts['fields'];
       }
       else {
         if (OgerFunc::isAssoc($opts['fields'])) {
