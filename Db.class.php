@@ -243,6 +243,7 @@ class Db {
       if (!$fieldName) {
         continue;
       }
+      static::checkFieldName($fieldName, false);
       $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . '=:' . $fieldName;
     }
 
@@ -376,6 +377,9 @@ class Db {
 
     $stmt = '';
 
+    if (!array_key_exists('checkFieldNames', $opts)) {
+      $opts['checkFieldNames'] = true;
+    }
 
     // SELECT statment
     if ($opts['select'] === false) {
@@ -399,15 +403,19 @@ class Db {
 
     // result fields (if associative arrays use keys insted of values)
     if ($opts['fields']) {
-      if (is_string($opts['fields'])) {
-        $stmt .= ' ' . $opts['fields'];
+      $fieldNames = $opts['fields'];
+      if (is_string($fieldNames)) {
+        $fieldNames = explode(',' , $opts['fields']);
       }
-      else {
-        if (OgerFunc::isAssoc($opts['fields'])) {
-          $opts['fields'] = array_keys($opts['fields']);
+      if (OgerFunc::isAssoc($fieldNames)) {
+        $fieldNames = array_keys($fieldNames);
+      }
+      if ($opts['checkFieldNames']) {
+        foreach($fieldNames as $fieldName) {
+          static::checkFieldName($fieldName, false);
         }
-        $stmt .= ' ' . implode(' ', $opts['fields']);
       }
+      $stmt .= ' ' . implode(' ', $fieldNames);
     }
 
 
@@ -521,6 +529,37 @@ class Db {
     return $stmt;
 
   } // eo create select statement
+
+
+
+  /**
+  * Check one fieldname. Throw excaption if fieldname invalid.
+  */
+  public static function checkFieldName($fieldName, $silent) {
+    if (!preg_match('/\w+|\*/', trim($fieldName))) {
+      if ($silent) {
+        return false;
+      }
+      else {
+        $ex = new Exception("Db::checkFieldName: Invalid fieldname $fieldName.");
+        $ex->invalidFieldName = $fieldName;
+        throw $ex;
+      }
+    }
+    return true;
+  }  // eo check fieldname with exception
+
+  /**
+  * Check one or more fieldnames. Throw excaption if fieldname invalid.
+  */
+  public static function checkFieldNamesEx($fieldNames) {
+    if (is_string($fieldNames)) {
+      $fieldNames = array($fieldNames);
+    }
+    foreach ($fieldNames as $fieldName) {
+      static::checkFieldName($fieldName, false);
+    }
+  }  // eo check fieldname with exception
 
 
 

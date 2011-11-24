@@ -41,6 +41,9 @@ class OgerFunc {
   * That means if it has non numeric keys.
   */
   public static function isAssoc($array) {
+    if (!is_array($array)) {
+      return false;
+    }
     foreach ($array as $key => $value) {
       if (!is_numeric($key)) {
         return true;
