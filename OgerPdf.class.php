@@ -52,50 +52,77 @@ class OgerPdf extends TCPDF {
   * @tpl: Template
   * @params: assocoiative array with variableName => value pairs.
   */
-  public function tplUse($tpl, $placeholders = array()) {
+  public function tplUse($tpl, $values = array()) {
 
     // unify newlines
-    $tpl = str_replace("\r\n", "\n", $tpl);
     $tpl = str_replace("\r", "\n", $tpl);
-
-    // remove blocks
-    $tpl = preg_replace('/^::\{::.*?^::\}::/ms', '', $tpl);
-
-    // replace placeholders
-    foreach ($placeholders as $key => $value) {
-      $tpl = str_replace("{" . $key . "}", $value, $tpl);
-    }
-
-    // fake first command
-    $cmd = '::#::';
-    $opts = '';
-    $text = '';
 
     $lines = explode("\n", $tpl);
     for ($i=0; $i < count($lines); $i++) {
 
       $line = $lines[$i];
-      list($dummy, $tmpCmd, $tmpOpts, $tmpText) = explode('::', $line, 4);
 
-      // if line does not start with '::' or the extracted command is not valid
-      // we treat this as continuation line. Should reduce the danger of continuation lines.
-      if (substr($line, 0, 2) !== '::' || !$this->tplExecuteCmd($tmpCmd, '', '', true)) {
-        $text .= "\n" . $line;
-        // the last line cannot have a continous line
+      list($cmd, $moreLines, $reserved, $text) = explode("#", $line, 4);
+
+      // read continous lines
+      while ($moreLines-- > 0 && ++$i < count($lines)) {
+        $text .= "\n" . $lines[$i];
       }
-      else {
-        // execute buffered command
-        $this->tplExecuteCmd($cmd, $opts, $text, false);
-        // buffer current line info
-        $cmd = $tmpCmd;
-        $opts = $tmpOpts;
-        $text = $tmpText;
+
+      // command and opts are separated with one or more spaces
+      $cmd = trim($cmd);
+      list($cmd, $opts) = explode(' ', $cmd, 2);
+      $opts = trim($opts);
+
+      // ignore empty commands
+      if (!$cmd) {
+        continue;
       }
+
+      // ignore comments "//"
+      if (substr($cmd, 0, 2) == '//') {
+        continue;
+      }
+
+      // recognize and ignore blocks here
+      if (substr($cmd, 0, 1) == '{') {
+        while (++$i < count($lines)) {
+          if (substr(trim($lines[$i]), 0, 1) == "}") {
+            break;
+          }
+        }
+        continue;
+      }  // blocks
+
+
+      // prepare text and substitute variables
+      // MEMO: if preg_match_all is to slow we can try exploding at "{" etc
+      preg_match_all('/(\{.*?\})/ms', $text, $varDefs);
+      foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
+        $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
+        list($varName, $format) = explode(" ", $varName, 2);
+        $varName = trim($varName);
+        // TODO format handling
+        if (array_key_exists($varName, $values)) {
+          $text = str_replace($varDef, $values[$varName], $text);
+        }
+      }
+
+
+      // substitute variables in options too
+      preg_match_all('/(\{.*?\})/ms', $opts, $varDefs);
+      foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
+        $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
+        if (array_key_exists($varName, $values)) {
+          $opts = str_replace($varDef, $values[$varName], $opts);
+        }
+      }
+
+
+      // execute command
+      $this->tplExecuteCmd($cmd, $opts, $text, $i);
 
     }  // line loop
-
-    // excute last buffered command
-    $this->tplExecuteCmd($cmd, $opts, $text, false);
 
   }  // eo use template
 
@@ -107,7 +134,7 @@ class OgerPdf extends TCPDF {
   * @text: Text.
   * @checkOnly: True to do a checkonly run without executing the command.
   */
-  public function tplExecuteCmd($cmd, $opts = '', $text = '', $checkOnly = false) {
+  public function tplExecuteCmd($cmd, $opts, $text, $line) {
 
     $opts = $this->tplParseOpts($opts);
 
@@ -118,59 +145,48 @@ class OgerPdf extends TCPDF {
     switch ($cmd) {
     case '//':
     case '#':
-      if ($checkOnly) { return true; }
-      return true;
       break;
     case 'FONT':
-      if ($checkOnly) { return true; }
       $this->tplSetFont($opts[0]);
       break;
     case 'LINEDEF':
-      if ($checkOnly) { return true; }
       $this->tplSetLineDef($opts[0]);
       break;
     case 'DRAWCOL':
-      if ($checkOnly) { return true; }
       $this->tplSetDrawCol($opts[0]);
       break;
     case 'FILLCOL':
-      if ($checkOnly) { return true; }
       $this->tplSetFillCol($opts[0]);
       break;
     case 'RECT':
-      if ($checkOnly) { return true; }
       list ($rect, $lineDef, $fill) = $opts;
       $this->tplRect($rect, $lineDef, $fill);
       break;
     case 'CELL':
-      if ($checkOnly) { return true; }
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
       break;
     case 'CELLAT':
-      if ($checkOnly) { return true; }
       list ($pos, $cell, $font) = $opts;
       $this->tplSetXY($pos);
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
       break;
     case 'MCELL':
-      if ($checkOnly) { return true; }
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
       break;
     case 'MCELLAT':
-      if ($checkOnly) { return true; }
       list ($pos, $cell, $font) = $opts;
       $this->tplSetXY($pos);
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
       break;
-    } // eo execute cmd
-
-    if ($checkOnly) { return true; }
+    default:
+      throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $line.\n");
+    } // eo cmd switch
 
   }  // eo execute template command
 
@@ -181,7 +197,7 @@ class OgerPdf extends TCPDF {
   */
   public function tplParseOpts(&$opts, $inBlock = false) {
 
-    // if not in block than this is the inial call
+    // if not in option-block than this is the initial call
     // and we have to prepare the opts string
     if (!$inBlock) {
       $opts = str_replace(' ', '', $opts);
@@ -221,8 +237,8 @@ class OgerPdf extends TCPDF {
 
     }  // eo char loop
 
-    // script should only reach this point only at top level of recursion
-    // otherwise if the last block is not closed with ']'
+    // script should reach this point only at top level of recursion
+    // otherwise if the last option-block is not closed with ']'
     // Try to correct silently by adding current value (or an empty one)
     if ($inBlock) {
       if (substr($value, 0, 1) == "=") {
@@ -242,7 +258,7 @@ class OgerPdf extends TCPDF {
   */
   public function tplGetBlocks($tpl) {
 
-    preg_match_all('/^\{(.*?$)(.*?)^\}/ms', $tpl, $matches);
+    preg_match_all('/^\s*\{(.*?$)(.*?)^\s*\}/ms', $tpl, $matches);
 
     $blocks = array();
     for ($i = 0; $i < count($matches[1]) ; $i++) {
@@ -281,10 +297,8 @@ class OgerPdf extends TCPDF {
   * Set template font
   */
   public function tplSetFont($opts) {
-
     list($family, $style, $size) = $opts;
     parent::SetFont($family, $style, $size);
-
   }  // eo tpl set font
 
 
