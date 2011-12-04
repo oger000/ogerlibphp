@@ -62,7 +62,11 @@ class OgerPdf extends TCPDF {
 
       $line = $lines[$i];
 
-      list($cmd, $moreLines, $reserved, $text) = explode("#", $line, 4);
+      // commandpart and text are separated by #
+      list($cmd, $text) = explode("#", $line, 2);
+      // command parts and parseOpts are separated by "::"
+      // Multiple parts are possible (may be also separated by "::")
+      list($cmd, $moreLines) = explode("::", $cmd, 2);
 
       // read continous lines
       while ($moreLines-- > 0 && ++$i < count($lines)) {
@@ -102,14 +106,25 @@ class OgerPdf extends TCPDF {
         $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
         list($varName, $format) = explode(" ", $varName, 2);
         $varName = trim($varName);
-        // TODO format handling
+        $format = trim($format);
         if (array_key_exists($varName, $values)) {
-          $text = str_replace($varDef, $values[$varName], $text);
+          $value = $values[$varName];
+          if ($format) {
+            list($formatType, $format) = explode(':', $format, 2);
+            $formatType = trim($formatType);
+            switch ($formatType) {
+            case "datetime":
+              $value = date($format, strtotime($value));
+              break;
+            }  // eo formattye
+          }
+          $text = str_replace($varDef, $value, $text);
         }
       }
 
 
       // substitute variables in options too
+      /* OBSOLETE:variables are only substituted in text
       preg_match_all('/(\{.*?\})/ms', $opts, $varDefs);
       foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
         $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
@@ -117,6 +132,7 @@ class OgerPdf extends TCPDF {
           $opts = str_replace($varDef, $values[$varName], $opts);
         }
       }
+      */
 
 
       // execute command
