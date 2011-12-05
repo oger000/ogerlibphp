@@ -34,7 +34,7 @@ class OgerPdf extends TCPDF {
   /**
   * Clip cell at given width
   */
-  public function ClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
+  public function ogerClippedCell($width, $height, $text, $border = 0, $ln = 0, $align = '', $fill = 0, $link = null) {
 
     while (strlen($text) > 0 && parent::GetStringWidth($text) > $width) {
       $text = substr($text, 0, -1);
@@ -171,6 +171,14 @@ class OgerPdf extends TCPDF {
     case 'INIT':
       $this->tplInitPdf($opts);
       break;
+    case 'AUTOPAGEBREAK':
+      $this->setAutoPageBreak($opts[0], $opts[1]);
+      break;
+    case 'NEWLINE':
+    case 'NL':
+    case 'LN':
+      $this->ln();
+      break;
     case 'FONT':
       $this->tplSetFont($opts[0]);
       break;
@@ -187,10 +195,43 @@ class OgerPdf extends TCPDF {
       list ($rect, $lineDef, $fill) = $opts;
       $this->tplRect($rect, $lineDef, $fill);
       break;
+    case 'CLIPCELL':
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplClippedCell($cell, $text);
+      break;
+    case 'CLIPCELLNL':
+    case 'CLIPCELLLN':
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplClippedCell($cell, $text);
+      $this->ln();
+      break;
+    case 'CLIPCELLAT':
+      list ($pos, $cell, $font) = $opts;
+      $this->tplSetXY($pos);
+      $this->tplSetFont($font);
+      $this->tplClippedCell($cell, $text);
+      break;
+    case 'CLIPCELLATNL':
+    case 'CLIPCELLATLN':
+      list ($pos, $cell, $font) = $opts;
+      $this->tplSetXY($pos);
+      $this->tplSetFont($font);
+      $this->tplClippedCell($cell, $text);
+      $this->ln();
+      break;
     case 'CELL':
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
+      break;
+    case 'CELLLN':
+    case 'CELLNL':
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplCell($cell, $text);
+      $this->ln();
       break;
     case 'CELLAT':
       list ($pos, $cell, $font) = $opts;
@@ -198,16 +239,29 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
       break;
+    case 'CELLATNL':
+    case 'CELLATLN':
+      list ($pos, $cell, $font) = $opts;
+      $this->tplSetXY($pos);
+      $this->tplSetFont($font);
+      $this->tplCell($cell, $text);
+      $this->ln();
+      break;
     case 'MCELL':
+    case 'MULTICELL':
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
       break;
     case 'MCELLAT':
+    case 'MULTICELLAT':
       list ($pos, $cell, $font) = $opts;
       $this->tplSetXY($pos);
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
+      break;
+    case 'WRITE':
+      $this->write($this->getFontSize(), $text);   // FIXME
       break;
     default:
       throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $line.\n");
@@ -409,7 +463,7 @@ class OgerPdf extends TCPDF {
 
 
   /**
-  * Output tmplate cell
+  * Output template cell
   */
   public function tplCell($opts, $text) {
 
@@ -431,9 +485,37 @@ class OgerPdf extends TCPDF {
       $this->tplSetFillColor($color);
     }
 
-    $this->ClippedCell($width, $height, $text, $border, $ln, $align, $fill, $link);
-
+    parent::Cell($width, $height, $text, $border, $ln, $align, $fill, $link);
   }  // eo tpl cell output
+
+
+
+  /**
+  * Output clipped template cell
+  */
+  public function tplClippedCell($opts, $text) {
+
+    list($width, $height, $borderDef, $ln, $align, $fillDef, $link) = $opts;
+
+    if ($borderDef) {
+      if (!is_array($borderDef)) {
+        $borderDef = array($borderDef);
+      }
+      list ($border, $lineDef) = $borderDef;
+      $this->tplSetLineDef($lineDef);
+    }
+
+    if ($fillDef) {
+      if (!is_array($fillDef)) {
+        $fillDef = array($fillDef);
+      }
+      list ($fill, $color) = $fillDef;
+      $this->tplSetFillColor($color);
+    }
+
+    $this->ogerClippedCell($width, $height, $text, $border, $ln, $align, $fill, $link);
+
+  }  // eo tpl clipped cell output
 
 
 

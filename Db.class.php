@@ -238,13 +238,43 @@ class Db {
 
 
     // create where clause
+    // fieldname can contain comparation operator and andOr operator
     foreach ($fields as $fieldName) {
-      // skip empty field names
+
+      list($fieldName, $compOp, $valueName, $andOrOp) = explode(",", $fieldName);
+      
+      $fieldName = trim($fieldName);
       if (!$fieldName) {
         continue;
       }
       static::checkFieldName($fieldName, false);
-      $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . '=:' . $fieldName;
+      
+      $valueName = trim($valueName);
+      if (!$valueName) {
+        $valueName = $fieldName;
+      }
+
+      $compOp = trim($compOp);
+      if (!$compOp) {
+        $compOp = "=";
+      }
+      switch ($compOp) {
+      case "=":
+      case "!=":
+      case "<":
+      case "<=":
+      case ">":
+      case ">=":
+        break;
+      default:
+      }
+
+      $andOrOp = trim($andOrOp);
+      if ($andOrOp) {
+        $andOr = $andOrOp;  // fieldspecific values overwrite general settings
+      }
+Dev::debugSess("fieldname=$fieldName, valuename=$valueName");      
+      $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . $compOp . ":$valueName";
     }
 
     // return nothing if no statement created
@@ -255,6 +285,35 @@ class Db {
     return ($withWhere ? ' WHERE ' : '') . $stmt;
   } // end of create where for prepared statement
 
+
+
+  /**
+  * Cleanup where vals from additional parameters like comparison operation etc
+  * Fieldnames are NOT checked. Should be save here.
+  */
+  public static function getCleanWhereVals($values) {
+
+    $whereVals = array();
+
+    // fieldname can contain comparation operator and andOr operator
+    foreach ($values as $key => $value) {
+
+      list($fieldName, $compOp, $valueName, $$andOrOp) = explode(",", $key);
+      
+      $fieldName = trim($fieldName);
+      if (!$fieldName) {
+        continue;
+      }
+      
+      $valueName = trim($valueName);
+      if (!$valueName) {
+        $valueName = $fieldName;
+      }
+      $whereVals[$valueName] = $value;
+    }
+
+    return $whereVals;
+  } // end of clean where vals
 
 
   /**
