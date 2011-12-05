@@ -273,7 +273,7 @@ class Db {
       if ($andOrOp) {
         $andOr = $andOrOp;  // fieldspecific values overwrite general settings
       }
-Dev::debugSess("fieldname=$fieldName, valuename=$valueName");      
+
       $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . $compOp . ":$valueName";
     }
 
