@@ -52,7 +52,12 @@ class OgerPdf extends TCPDF {
   * @tpl: Template
   * @params: assocoiative array with variableName => value pairs.
   */
-  public function tplUse($tpl, $values = array()) {
+  public function tplUse($tpl, $values = array(), $blockName = '') {
+
+    // if a block name is given than only this block is used from the template
+    if ($blockName) {
+      $tpl = $this->tplGetBlock($tpl, $blockName);
+    }
 
     // unify newlines
     $tpl = str_replace("\r", "\n", $tpl);
@@ -154,13 +159,17 @@ class OgerPdf extends TCPDF {
 
     $opts = $this->tplParseOpts($opts);
 
+    // for fpdf we have to decode utf8 explicitly here
     if (get_parent_class($this) == 'FPDF') {
       $text = utf8_decode($text);
     }
 
     switch ($cmd) {
     case '//':
-    case '#':
+    case '#':        // # schould never happen - but anyway
+      break;
+    case 'INIT':
+      $this->tplInitPdf($opts);
       break;
     case 'FONT':
       $this->tplSetFont($opts[0]);
@@ -306,6 +315,27 @@ class OgerPdf extends TCPDF {
     parent::SetXY($x, $y);
 
   }  // eo tpl set xy
+
+
+
+  /**
+  * Init pdf
+  * The parameters are the same as in __construct, but for now only the first three ones
+  */
+  public function tplInitPdf($opts) {
+    $orientation = $opts[0][0];
+    $unit = $opts[0][1];
+    $format = $opts[0][2];
+    if ($orientation) {
+      parent::setPageOrientation($orientation);
+    }
+    if ($unit) {
+      parent::setPageUnit($unit);
+    }
+    if ($format) {
+      parent::setPageFormat($format, $orientation);
+    }
+  }  // eo tpl init pdf
 
 
 
