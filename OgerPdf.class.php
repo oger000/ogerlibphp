@@ -18,6 +18,8 @@ class OgerPdf extends FPDF {
 require_once('lib/tcpdf/tcpdf.php');
 class OgerPdf extends TCPDF {
 
+  public $tpl = "";
+
   /**
   * Constructor.
   */
@@ -48,16 +50,38 @@ class OgerPdf extends TCPDF {
 
 
   /**
+  * Set template
+  * @tpl: Template text
+  */
+  public function tplSet($tpl) {
+    $this->tpl = $tpl;
+  }
+
+  /**
+  * Display header
+  * Overwrites TcPdf::Header()
+  */
+  /*
+  public function header($tpl) {
+    $this->tpl = $tpl;
+  }
+  */
+
+
+
+  /**
   * Use template
-  * @tpl: Template
   * @params: assocoiative array with variableName => value pairs.
   */
-  public function tplUse($tpl, $values = array(), $blockName = '') {
+  public function tplUse($blockName, $values = array()) {
+
+    $tpl = $this->tpl;
 
     // if a block name is given than only this block is used from the template
     if ($blockName) {
-      $tpl = $this->tplGetBlock($tpl, $blockName);
+      $tpl = $this->tplGetBlock($blockName);
     }
+Dev::debugSess($tpl);    
 
     // unify newlines
     $tpl = str_replace("\r", "\n", $tpl);
@@ -344,9 +368,9 @@ class OgerPdf extends TCPDF {
   /**
   * Get marked blocks from template
   */
-  public function tplGetBlocks($tpl) {
+  public function tplGetBlocks() {
 
-    preg_match_all('/^\s*\{(.*?$)(.*?)^\s*\}/ms', $tpl, $matches);
+    preg_match_all('/^\s*\{(.*?$)(.*?)^\s*\}/ms', $this->tpl, $matches);
 
     $blocks = array();
     for ($i = 0; $i < count($matches[1]) ; $i++) {
@@ -361,8 +385,8 @@ class OgerPdf extends TCPDF {
   /**
   * Get named block from template
   */
-  public function tplGetBlock($tpl, $name) {
-    $blocks = $this->tplGetBlocks($tpl);
+  public function tplGetBlock($name) {
+    $blocks = $this->tplGetBlocks($this->tpl);
     return $blocks[$name];
   }  // get named block
 
