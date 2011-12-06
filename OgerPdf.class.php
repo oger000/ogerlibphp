@@ -253,6 +253,15 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
       break;
+    case 'MCELLNL':
+    case 'MCELLLN':
+    case 'MULTICELLNL':
+    case 'MULTICELLLN':
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplMultiCell($cell, $text);
+      $this->ln();
+      break;
     case 'MCELLAT':
     case 'MULTICELLAT':
       list ($pos, $cell, $font) = $opts;
