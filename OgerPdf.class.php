@@ -18,7 +18,11 @@ class OgerPdf extends FPDF {
 require_once('lib/tcpdf/tcpdf.php');
 class OgerPdf extends TCPDF {
 
+  public $startTime;
+  
   public $tpl = "";
+  public $headerValues = array();
+  public $footerValues = array();
 
   /**
   * Constructor.
@@ -27,7 +31,7 @@ class OgerPdf extends TCPDF {
                               $unicode = true, $encoding = 'UTF-8', $diskcace = false) {  // additional parameters for TCPDF
 
     parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskspace);
-
+    $this->startTime = time();
   }  // eo constructor
 
 
@@ -58,15 +62,34 @@ class OgerPdf extends TCPDF {
   }
 
   /**
+  * Set header values
+  */
+  public function tplSetHeaderValues($values) {
+    $this->headerValues = $values;
+  }
+
+  /**
   * Display header
   * Overwrites TcPdf::Header()
   */
-  /*
-  public function header($tpl) {
-    $this->tpl = $tpl;
+  public function header() {
+    $this->tplUse('header', $this->headerValues);
   }
-  */
 
+  /**
+  * Set footer values
+  */
+  public function tplSetFooterValues($values) {
+    $this->footerValues = $values;
+  }
+
+  /**
+  * Display footer
+  * Overwrites TcPdf::Footer()
+  */
+  public function footer() {
+    $this->tplUse('footer', $this->footerValues);
+  }
 
 
   /**
@@ -81,7 +104,6 @@ class OgerPdf extends TCPDF {
     if ($blockName) {
       $tpl = $this->tplGetBlock($blockName);
     }
-Dev::debugSess($tpl);    
 
     // unify newlines
     $tpl = str_replace("\r", "\n", $tpl);
@@ -127,6 +149,11 @@ Dev::debugSess($tpl);
         continue;
       }  // blocks
 
+
+      // add some system variables to the values array
+      $values['__TIME__'] = date('c', $this->startTime);
+      $values['__PAGENO__'] = $this->pageNo();
+      $values['__NBPAGES__'] = $this->getAliasNbPages();
 
       // prepare text and substitute variables
       // MEMO: if preg_match_all is to slow we can try exploding at "{" etc
@@ -195,19 +222,34 @@ Dev::debugSess($tpl);
     case 'INIT':
       $this->tplInitPdf($opts);
       break;
+    case 'MARGINS':
+      list($left, $top, $right, $keep) = $opts[0];
+      $this->setMargins($left, $top, $right, $keep);
+      break;
     case 'AUTOPAGEBREAK':
-      $this->setAutoPageBreak($opts[0], $opts[1]);
+      $this->setAutoPageBreak($opts[0][0], $opts[0][1]);
       break;
     case 'NEWLINE':
     case 'NL':
     case 'LN':
       $this->ln();
       break;
+    case 'STARTTRANSFORM':
+      $this->startTransform();
+      break;
+    case 'STOPTRANSFORM':
+      $this->stopTransform();
+      break;
     case 'FONT':
       $this->tplSetFont($opts[0]);
       break;
     case 'LINEDEF':
       $this->tplSetLineDef($opts[0]);
+      break;
+    case 'LINE':
+      $this->tplSetLineDef($opts[1]);
+      list($x1, $y1, $x2, $y2) = $opts[0];
+      $this->line($x1, $y1, $x2, $y2);
       break;
     case 'DRAWCOL':
       $this->tplSetDrawCol($opts[0]);
