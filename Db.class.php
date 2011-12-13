@@ -293,6 +293,10 @@ class Db {
   */
   public static function getCleanWhereVals($values) {
 
+    if ($values === null) {
+      $values = array();
+    }
+
     $whereVals = array();
 
     // fieldname can contain comparation operator and andOr operator
