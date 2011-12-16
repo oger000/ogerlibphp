@@ -11,6 +11,18 @@
 * Should work for FPDF too, but not all features are supported:
 * - Maxheight of MultiCell
 */
+
+
+
+
+/*
+ * HAVE A LOOK AT FPDF_TPL/FPDI
+ * at <http://www.setasign.de/products/pdf-php-solutions/fpdi/>
+ * may be this "pdf-template from an existing pdf"
+ * could replace this home-grown template system?
+ */
+
+
 /*
 require_once('lib/fpdf/fpdf.php');
 class OgerPdf extends FPDF {
