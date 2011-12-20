@@ -242,13 +242,13 @@ class Db {
     foreach ($fields as $fieldName) {
 
       list($fieldName, $compOp, $valueName, $andOrOp) = explode(",", $fieldName);
-      
+
       $fieldName = trim($fieldName);
       if (!$fieldName) {
         continue;
       }
       static::checkFieldName($fieldName, false);
-      
+
       $valueName = trim($valueName);
       if (!$valueName) {
         $valueName = $fieldName;
@@ -303,12 +303,12 @@ class Db {
     foreach ($values as $key => $value) {
 
       list($fieldName, $compOp, $valueName, $$andOrOp) = explode(",", $key);
-      
+
       $fieldName = trim($fieldName);
       if (!$fieldName) {
         continue;
       }
-      
+
       $valueName = trim($valueName);
       if (!$valueName) {
         $valueName = $fieldName;
@@ -376,6 +376,10 @@ class Db {
   public static function createStmt($action, $table, $fields, $where) {
 
     $stmt = '';
+
+    if (is_array($where)) {
+      $where = self::createWhereStmt($where);
+    }
 
     switch ($action) {
     case self::ACTION_INSERT:
