@@ -31,7 +31,7 @@ require_once('lib/tcpdf/tcpdf.php');
 class OgerPdf extends TCPDF {
 
   public $startTime;
-  
+
   public $tpl = "";
   public $headerValues = array();
   public $footerValues = array();
@@ -132,8 +132,9 @@ class OgerPdf extends TCPDF {
       list($cmd, $moreLines) = explode("::", $cmd, 2);
 
       // read continous lines
-      while ($moreLines-- > 0 && ++$i < count($lines)) {
+      while ($moreLines > 0 && ++$i < count($lines)) {
         $text .= "\n" . $lines[$i];
+        $moreLines = $moreLines - 1;
       }
 
       // command and opts are separated with one or more spaces
@@ -278,38 +279,16 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplClippedCell($cell, $text);
       break;
-    case 'CLIPCELLNL':
-    case 'CLIPCELLLN':
-      list ($cell, $font) = $opts;
-      $this->tplSetFont($font);
-      $this->tplClippedCell($cell, $text);
-      $this->ln();
-      break;
     case 'CLIPCELLAT':
       list ($pos, $cell, $font) = $opts;
       $this->tplSetXY($pos);
       $this->tplSetFont($font);
       $this->tplClippedCell($cell, $text);
       break;
-    case 'CLIPCELLATNL':
-    case 'CLIPCELLATLN':
-      list ($pos, $cell, $font) = $opts;
-      $this->tplSetXY($pos);
-      $this->tplSetFont($font);
-      $this->tplClippedCell($cell, $text);
-      $this->ln();
-      break;
     case 'CELL':
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
-      break;
-    case 'CELLLN':
-    case 'CELLNL':
-      list ($cell, $font) = $opts;
-      $this->tplSetFont($font);
-      $this->tplCell($cell, $text);
-      $this->ln();
       break;
     case 'CELLAT':
       list ($pos, $cell, $font) = $opts;
@@ -317,28 +296,11 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplCell($cell, $text);
       break;
-    case 'CELLATNL':
-    case 'CELLATLN':
-      list ($pos, $cell, $font) = $opts;
-      $this->tplSetXY($pos);
-      $this->tplSetFont($font);
-      $this->tplCell($cell, $text);
-      $this->ln();
-      break;
     case 'MCELL':
     case 'MULTICELL':
       list ($cell, $font) = $opts;
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
-      break;
-    case 'MCELLNL':
-    case 'MCELLLN':
-    case 'MULTICELLNL':
-    case 'MULTICELLLN':
-      list ($cell, $font) = $opts;
-      $this->tplSetFont($font);
-      $this->tplMultiCell($cell, $text);
-      $this->ln();
       break;
     case 'MCELLAT':
     case 'MULTICELLAT':
@@ -347,8 +309,13 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplMultiCell($cell, $text);
       break;
+    case 'HTMLCELL':
+      list ($cell, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplHtmlCell($cell, $text);
+      break;
     case 'WRITE':
-      $this->write($this->getFontSize(), $text);   // FIXME
+      $this->write($this->getFontSize(), $text);   // FIXME incomplete
       break;
     default:
       throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $line.\n");
@@ -556,6 +523,10 @@ class OgerPdf extends TCPDF {
 
     list($width, $height, $borderDef, $ln, $align, $fillDef, $link) = $opts;
 
+    if ($width === 'FIT') {
+      $width = parent::GetStringWidth($text);
+    }
+
     if ($borderDef) {
       if (!is_array($borderDef)) {
         $borderDef = array($borderDef);
@@ -583,6 +554,10 @@ class OgerPdf extends TCPDF {
   public function tplClippedCell($opts, $text) {
 
     list($width, $height, $borderDef, $ln, $align, $fillDef, $link) = $opts;
+
+    if ($width === 'FIT') {
+      $width = parent::GetStringWidth($text);
+    }
 
     if ($borderDef) {
       if (!is_array($borderDef)) {
@@ -630,10 +605,70 @@ class OgerPdf extends TCPDF {
       $this->tplSetFillColor($color);
     }
 
+    // handle x position and indention of first line
+    if ($x) {
+      if (!is_array($x)) {
+        $x = array($x);
+      }
+      list ($x, $xFirst) = $x;
+      if ($xFirst !== null) {
+        if (substr($xFirst, 0, 7) == 'CURRENT') {
+          list($xFirst, $xOffset) = explode(':', $xFirst);
+          $xFirst = $this->getX() + $xOffset;
+        }
+        if ($xFirst !== $x) {
+          parent::setX($xFirst);
+          $text = parent::write($height, $text, '', false, '', false, 0, true, false, 0);
+          // if the first line ends with an hard line break this remains in the remaining text, so we remove it
+          //$text = ltrim($text);
+          if (substr($text, 0, 1) == "\n") {
+            $text = substr($text, 1);
+          }
+        }
+      }
+    }
+
     parent::MultiCell($width, $height, $text, $border, $align, $fill,
                       $ln, $x, $y, $resetH, $stretch, $isHtml, $autoPadding, $maxHeight, $vAlign, $fitCell);
 
   }  // eo tpl multi cell
+
+
+  /**
+  * Output template html cell
+  */
+  public function tplHtmlCell($opts, $text) {
+
+    list($width, $height, $x, $y, $borderDef, $ln, $fillDef, $resetH, $align, $autoPadding) = $opts;
+
+    /*
+    html text includes formating, so lenght cannot be detected this way
+    if ($width === 'FIT') {
+      $width = parent::GetStringWidth($text);
+    }
+    */
+
+    if ($borderDef) {
+      if (!is_array($borderDef)) {
+        $borderDef = array($borderDef);
+      }
+      list ($border, $lineDef) = $borderDef;
+      $this->tplSetLineDef($lineDef);
+    }
+
+    if ($fillDef) {
+      if (!is_array($fillDef)) {
+        $fillDef = array($fillDef);
+      }
+      list ($fill, $color) = $fillDef;
+      $this->tplSetFillColor($color);
+    }
+
+    parent::writeHTMLCell($width, $height, $x, $y, $text, $border, $ln, $fill, $resetH, $align, $autoPadding);
+  }  // eo tpl html cell output
+
+
+
 
   ########## TEMPLATE END ##########
 
