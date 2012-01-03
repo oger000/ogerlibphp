@@ -314,6 +314,11 @@ class OgerPdf extends TCPDF {
       $this->tplSetFont($font);
       $this->tplHtmlCell($cell, $text);
       break;
+    case 'HTML':
+      list ($htmlOpts, $font) = $opts;
+      $this->tplSetFont($font);
+      $this->tplHtml($htmlOpts, $text);
+      break;
     case 'WRITE':
       $this->write($this->getFontSize(), $text);   // FIXME incomplete
       break;
@@ -668,6 +673,23 @@ class OgerPdf extends TCPDF {
   }  // eo tpl html cell output
 
 
+  /**
+  * Output template html (write html)
+  */
+  public function tplHtml($opts, $text) {
+
+    list($ln, $fillDef, $resetH, $cellMode, $align) = $opts;
+
+    if ($fillDef) {
+      if (!is_array($fillDef)) {
+        $fillDef = array($fillDef);
+      }
+      list ($fill, $color) = $fillDef;
+      $this->tplSetFillColor($color);
+    }
+
+    parent::writeHTML($text, $ln, $fill, $resetH, $cellMode, $align);
+  }  // eo tpl write html output
 
 
   ########## TEMPLATE END ##########
