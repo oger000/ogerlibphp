@@ -160,6 +160,18 @@ class Db {
 
 
   /**
+  * execute statement (non-query)
+  **/
+  public static function exec($stmt) {
+    self::getConn();
+    return self::$conn->exec($stmt);
+  }
+
+
+
+
+
+  /**
   * get named sql parameters (by default from post data)
   */
   public static function fillStmtParms($stmt, $values = null) {
