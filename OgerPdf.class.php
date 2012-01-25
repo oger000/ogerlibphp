@@ -163,45 +163,30 @@ class OgerPdf extends TCPDF {
       }  // blocks
 
 
+      $text = $this->substTextVals($text, $values);
+
+      // handle IF out of order  / condition is in text to allow REALY everything
+      // check only for variable has any value for now (no locical operator etc)
+      if ($cmd == 'IF') {
+        // if condition failes skip till ENDIF
+        if (!$this->evalIfCondition($text)) {
+          while (++$i < count($lines)) {
+            if (substr(trim($lines[$i]), 0, 5) == "ENDIF") {
+              break;
+            }
+          }
+        }
+        continue;
+      }  // eo IF command
+      if ($cmd == 'ENDIF') {
+        continue;
+      }  // eo ENDIF stanca of IF command
+
+
       // add some system variables to the values array
       $values['__TIME__'] = date('c', $this->startTime);
       $values['__PAGENO__'] = $this->pageNo();
       $values['__NBPAGES__'] = $this->getAliasNbPages();
-
-      // prepare text and substitute variables
-      // MEMO: if preg_match_all is to slow we can try exploding at "{" etc
-      preg_match_all('/(\{.*?\})/ms', $text, $varDefs);
-      foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
-        $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
-        list($varName, $format) = explode(" ", $varName, 2);
-        $varName = trim($varName);
-        $format = trim($format);
-        if (array_key_exists($varName, $values)) {
-          $value = $values[$varName];
-          if ($format) {
-            list($formatType, $format) = explode(':', $format, 2);
-            $formatType = trim($formatType);
-            switch ($formatType) {
-            case "datetime":
-              $value = date($format, strtotime($value));
-              break;
-            }  // eo formattye
-          }
-          $text = str_replace($varDef, $value, $text);
-        }
-      }
-
-
-      // substitute variables in options too
-      /* OBSOLETE:variables are only substituted in text
-      preg_match_all('/(\{.*?\})/ms', $opts, $varDefs);
-      foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
-        $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
-        if (array_key_exists($varName, $values)) {
-          $opts = str_replace($varDef, $values[$varName], $opts);
-        }
-      }
-      */
 
 
       // execute command
@@ -261,8 +246,7 @@ class OgerPdf extends TCPDF {
       break;
     case 'LINE':
       $this->tplSetLineDef($opts[1]);
-      list($x1, $y1, $x2, $y2) = $opts[0];
-      $this->line($x1, $y1, $x2, $y2);
+      $this->tplLine($opts[0]);
       break;
     case 'DRAWCOL':
       $this->tplSetDrawCol($opts[0]);
@@ -692,9 +676,87 @@ class OgerPdf extends TCPDF {
   }  // eo tpl write html output
 
 
+
+
+
+  /**
+  * Template line
+  */
+  public function tplLine($opts) {
+
+    list($x1, $y1, $x2, $y2) = $opts;
+
+    if ($x1 == 'CURRENT') {
+      $x1 = $this->GetX();
+    }
+    if ($y1 == 'CURRENT') {
+      $y1 = $this->GetY();
+    }
+    if ($x2 == 'CURRENT') {
+      $x2 = $this->GetX();
+    }
+    if ($y2 == 'CURRENT') {
+      $y2 = $this->GetY();
+    }
+
+    $this->line($x1, $y1, $x2, $y2);
+
+  }  // eo template line
+
+
+
+
+
+
   ########## TEMPLATE END ##########
 
 
+
+  /**
+  * Substitute variables in text
+  */
+  public function substTextVals($text, $values) {
+
+    // prepare text and substitute variables
+    // MEMO: if preg_match_all is to slow we can try exploding at "{" etc
+    preg_match_all('/(\{.*?\})/ms', $text, $varDefs);
+    foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
+      $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
+      list($varName, $format) = explode(" ", $varName, 2);
+      $varName = trim($varName);
+      $format = trim($format);
+      if (array_key_exists($varName, $values)) {
+        $value = $values[$varName];
+        if ($format) {
+          list($formatType, $format) = explode(':', $format, 2);
+          $formatType = trim($formatType);
+          switch ($formatType) {
+          case "datetime":
+            $value = date($format, strtotime($value));
+            break;
+          }  // eo formattye
+        }
+        $text = str_replace($varDef, $value, $text);
+      }
+    }
+
+    return $text;
+  }   // eo substitute text vars
+
+
+  /**
+  * Evaluate IF condition
+  * @condition: condition string after substituting variables
+  */
+  public function evalIfCondition($condition) {
+
+    // for now we only check if the condition contains ANY CONTENT
+    if (trim($condition)) {
+      return true;
+    }
+
+    return false;
+  }   // eo eval IF condition
 
 
 
