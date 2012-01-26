@@ -35,6 +35,7 @@ class OgerPdf extends TCPDF {
   public $tpl = "";
   public $headerValues = array();
   public $footerValues = array();
+  public $attribStore = array();
 
   /**
   * Constructor.
@@ -169,7 +170,7 @@ class OgerPdf extends TCPDF {
       // check only for variable has any value for now (no locical operator etc)
       if ($cmd == 'IF') {
         // if condition failes skip till ENDIF
-        if (!$this->evalIfCondition($text)) {
+        if (!$this->tplEvalIf($text)) {
           while (++$i < count($lines)) {
             if (substr(trim($lines[$i]), 0, 5) == "ENDIF") {
               break;
@@ -305,6 +306,12 @@ class OgerPdf extends TCPDF {
       break;
     case 'WRITE':
       $this->write($this->getFontSize(), $text);   // FIXME incomplete
+      break;
+    case 'STORE':
+      $this->tplStoreAttib($opts);
+      break;
+    case 'RESTORE':
+      $this->tplRestoreAttib($opts);
       break;
     default:
       throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $line.\n");
@@ -601,10 +608,7 @@ class OgerPdf extends TCPDF {
       }
       list ($x, $xFirst) = $x;
       if ($xFirst !== null) {
-        if (substr($xFirst, 0, 7) == 'CURRENT') {
-          list($xFirst, $xOffset) = explode(':', $xFirst);
-          $xFirst = $this->getX() + $xOffset;
-        }
+        $xFirst = $this->tplEvalX($xFirst);
         if ($xFirst !== $x) {
           parent::setX($xFirst);
           $text = parent::write($height, $text, '', false, '', false, 0, true, false, 0);
@@ -686,21 +690,12 @@ class OgerPdf extends TCPDF {
 
     list($x1, $y1, $x2, $y2) = $opts;
 
-    if ($x1 == 'CURRENT') {
-      $x1 = $this->GetX();
-    }
-    if ($y1 == 'CURRENT') {
-      $y1 = $this->GetY();
-    }
-    if ($x2 == 'CURRENT') {
-      $x2 = $this->GetX();
-    }
-    if ($y2 == 'CURRENT') {
-      $y2 = $this->GetY();
-    }
+    $x1 = $this->tplEvalX($x1);
+    $y1 = $this->tplEvalY($y1);
+    $x2 = $this->tplEvalX($x2);
+    $y2 = $this->tplEvalY($y2);
 
     $this->line($x1, $y1, $x2, $y2);
-
   }  // eo template line
 
 
@@ -748,7 +743,7 @@ class OgerPdf extends TCPDF {
   * Evaluate IF condition
   * @condition: condition string after substituting variables
   */
-  public function evalIfCondition($condition) {
+  public function tplEvalIf($condition) {
 
     // for now we only check if the condition contains ANY CONTENT
     if (trim($condition)) {
@@ -758,6 +753,102 @@ class OgerPdf extends TCPDF {
     return false;
   }   // eo eval IF condition
 
+
+
+  /**
+  * template eval XY pos
+  */
+  private function tplEvalXY($opts, $current) {
+
+    if (!is_array($opts)) {
+      $opts = array($opts);
+    }
+
+    list($pos, $offset) = $opts;
+
+    if (trim($pos) == 'CURRENT') {
+      $pos = $current;
+    }
+    $current *= 1;
+
+    return $pos + $offset;
+  }   // eo eval xy
+  /**
+  * template eval X pos
+  */
+  public function tplEvalX($opts) {
+    return $this->tplEvalXY($opts, $this->getX());
+  }   // eo eval y
+  /**
+  * template eval Y pos
+  */
+  public function tplEvalY($opts) {
+    return $this->tplEvalXY($opts, $this->getY());
+  }   // eo eval y
+
+
+
+  /**
+  * Store attributes
+  */
+  public function tplStoreAttib($opts) {
+
+    list ($attributes, $indizes) = $opts;
+    if (!is_array($indizes)) {
+      $indizes = array($indizes);
+    }
+
+    foreach ($indizes as $index) {
+      $index = trim($index);
+      if (!$index) {
+        $index = 'DEFAULT';
+      }
+      foreach ($attributes as $attrib) {
+        switch ($attrib) {
+        case 'POS_X':
+          $this->attribStore[$index][$attrib] = $this->getX();
+          break;
+        case 'POS_Y':
+          $this->attribStore[$index][$attrib] = $this->getY();
+          break;
+        default:
+          // ignore silently
+        }
+      }
+    }
+
+  }   // eo store attributes
+
+  /**
+  * Restore attributes
+  */
+  public function tplRestoreAttib($opts) {
+
+    list ($attributes, $indizes) = $opts;
+    if (!is_array($indizes)) {
+      $indizes = array($indizes);
+    }
+
+    foreach ($indizes as $index) {
+      $index = trim($index);
+      if (!$index) {
+        $index = 'DEFAULT';
+      }
+      foreach ($attributes as $attrib) {
+        switch ($attrib) {
+        case 'POS_X':
+          parent::setX($this->attribStore[$index][$attrib]);
+          break;
+        case 'POS_Y':
+          parent::setY($this->attribStore[$index][$attrib]);
+          break;
+        default:
+          // ignore unknown attributes silently
+        }
+      }
+    }
+
+  }   // eo store attributes
 
 
 
