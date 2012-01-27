@@ -856,8 +856,8 @@ class OgerPdf extends TCPDF {
         case 'POS_X':
           parent::setX($this->attribStore[$index][$attrib]);
           break;
-        case 'POS_Y':   // ATTENTION set back to left margin
-          parent::setY($this->attribStore[$index][$attrib]);
+        case 'POS_Y':   // ATTENTION sety alone set back to left margin, so use setXY
+          parent::setXY($this->getX(), $this->attribStore[$index][$attrib]);
           break;
         case 'POS_XY':
           parent::setXY($this->attribStore[$index]['POS_X'],$this->attribStore[$index]['POS_Y']);
