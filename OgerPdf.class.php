@@ -122,9 +122,9 @@ class OgerPdf extends TCPDF {
     $tpl = str_replace("\r", "\n", $tpl);
 
     $lines = explode("\n", $tpl);
-    for ($i=0; $i < count($lines); $i++) {
+    for ($lineNumber = 0; $lineNumber < count($lines); $lineNumber++) {
 
-      $line = $lines[$i];
+      $line = $lines[$lineNumber];
 
       // commandpart and text are separated by #
       list($cmd, $text) = explode("#", $line, 2);
@@ -133,10 +133,23 @@ class OgerPdf extends TCPDF {
       list($cmd, $moreLines) = explode("::", $cmd, 2);
 
       // read continous lines
-      while ($moreLines > 0 && ++$i < count($lines)) {
-        $text .= "\n" . $lines[$i];
-        $moreLines = $moreLines - 1;
-      }
+      $moreLines = trim($moreLines);
+      if ($moreLines) {
+        if (strlen($moreLines) > 3 && substr($moreLines, 0, 3) == '...') {
+          while (++$lineNumber < count($lines)) {
+            if (trim($lines[$lineNumber]) == $moreLines) {
+              break;
+            }
+            $text .= "\n" . $lines[$lineNumber];
+          }
+        }
+        else {
+          while ($moreLines > 0 && ++$lineNumber < count($lines)) {
+            $text .= "\n" . $lines[$lineNumber];
+            $moreLines = $moreLines - 1;
+          }
+        }
+      }  // eo morelines
 
       // command and opts are separated with one or more spaces
       $cmd = trim($cmd);
@@ -155,8 +168,8 @@ class OgerPdf extends TCPDF {
 
       // recognize and ignore blocks here
       if (substr($cmd, 0, 1) == '{') {
-        while (++$i < count($lines)) {
-          if (substr(trim($lines[$i]), 0, 1) == "}") {
+        while (++$lineNumber < count($lines)) {
+          if (substr(trim($lines[$lineNumber]), 0, 1) == "}") {
             break;
           }
         }
@@ -171,8 +184,8 @@ class OgerPdf extends TCPDF {
       if ($cmd == 'IF') {
         // if condition failes skip till ENDIF
         if (!$this->tplEvalIf($text)) {
-          while (++$i < count($lines)) {
-            if (substr(trim($lines[$i]), 0, 5) == "ENDIF") {
+          while (++$lineNumber < count($lines)) {
+            if (substr(trim($lines[$lineNumber]), 0, 5) == "ENDIF") {
               break;
             }
           }
@@ -191,7 +204,7 @@ class OgerPdf extends TCPDF {
 
 
       // execute command
-      $this->tplExecuteCmd($cmd, $opts, $text, $i);
+      $this->tplExecuteCmd($cmd, $opts, $text, $lineNumber);
 
     }  // line loop
 
@@ -205,7 +218,7 @@ class OgerPdf extends TCPDF {
   * @text: Text.
   * @checkOnly: True to do a checkonly run without executing the command.
   */
-  public function tplExecuteCmd($cmd, $opts, $text, $line) {
+  public function tplExecuteCmd($cmd, $opts, $text, $lineNumber) {
 
     $opts = $this->tplParseOpts($opts);
 
@@ -314,7 +327,7 @@ class OgerPdf extends TCPDF {
       $this->tplRestoreAttib($opts);
       break;
     default:
-      throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $line.\n");
+      throw new Exception("OgerPdf::tplExecuteCmd: Unknown command: $cmd in line $lineNumber.\n");
     } // eo cmd switch
 
   }  // eo execute template command
@@ -805,6 +818,10 @@ class OgerPdf extends TCPDF {
       }
       foreach ($attributes as $attrib) {
         switch ($attrib) {
+        case 'POS_XY':
+          $this->attribStore[$index]['POS_X'] = $this->getX();
+          $this->attribStore[$index]['POS_Y'] = $this->getY();
+          break;
         case 'POS_X':
           $this->attribStore[$index][$attrib] = $this->getX();
           break;
@@ -839,15 +856,19 @@ class OgerPdf extends TCPDF {
         case 'POS_X':
           parent::setX($this->attribStore[$index][$attrib]);
           break;
-        case 'POS_Y':
+        case 'POS_Y':   // ATTENTION set back to left margin
           parent::setY($this->attribStore[$index][$attrib]);
+          break;
+        case 'POS_XY':
+          parent::setXY($this->attribStore[$index]['POS_X'],$this->attribStore[$index]['POS_Y']);
           break;
         default:
           // ignore unknown attributes silently
         }
       }
     }
-
+//$this->tplCell(array(20),"x.");
+//$this->tplCell(array(20),"y.");
   }   // eo store attributes
 
 
