@@ -182,8 +182,19 @@ class OgerPdf extends TCPDF {
       // handle IF out of order  / condition is in text to allow REALY everything
       // check only for variable has any value for now (no locical operator etc)
       if ($cmd == 'IF') {
-        // if condition failes skip till ENDIF
+        // if condition failes than skip till ENDIF
         if (!$this->tplEvalIf($text)) {
+          while (++$lineNumber < count($lines)) {
+            if (substr(trim($lines[$lineNumber]), 0, 5) == "ENDIF") {
+              break;
+            }
+          }
+        }
+        continue;
+      }  // eo IF command
+      if ($cmd == 'IFNOT') {
+        // if condition succeed than skip till ENDIF
+        if ($this->tplEvalIf($text)) {
           while (++$lineNumber < count($lines)) {
             if (substr(trim($lines[$lineNumber]), 0, 5) == "ENDIF") {
               break;
