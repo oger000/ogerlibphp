@@ -12,8 +12,10 @@
 */
 class OgerCsv {
 
+  // configure via static variables and hope this will not change within one app
   public static $fieldSeparator = ';';
-
+  public static $addNewLineToRow = true;
+  public static $delimitEmptyFields = false;
 
 
   /**
@@ -27,7 +29,7 @@ class OgerCsv {
   public static function prepFieldOut($value) {
 
     // do not prepare empty fields
-    if (!$value) {
+    if (!$value && !static::$delimitEmptyFields) {
       return '';
     }
 
@@ -47,7 +49,7 @@ class OgerCsv {
   * Prepare full row from value array
   * Add delimiter also to last field.
   */
-  public static function prepRowOut($values, $addNewLine = true) {
+  public static function prepRowOut($values) {
 
     $row = '';
 
@@ -64,7 +66,7 @@ class OgerCsv {
       $row .= static::prepFieldOut($value) . static::$fieldSeparator;
     }
 
-    if ($addNewLine) {
+    if (static::$addNewLineToRow) {
       $row .= "\n";
     }
 
