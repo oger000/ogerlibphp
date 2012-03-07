@@ -395,24 +395,23 @@ class Db {
 
     switch ($action) {
     case self::ACTION_INSERT:
-      for ($i=0; $i < count($fields); $i++) {
-        if ($i > 0) {
-          $stmtField .= ',';
-          $stmtValue .= ',';
+      foreach ($fields as $field) {
+        if (!$field) {
+          continue;
         }
-        $field = $fields[$i];
-        $stmtField .= "`$field`";
-        $stmtValue .= ':' . $field;
+        $stmtField .= ($stmtField ? "," : '') . "`$field`";
+        $stmtValue .= ($stmtValue ? "," : '') . ":$field";
       }
       $stmt .= "INSERT INTO `$table` ($stmtField) VALUES ($stmtValue)";
       break;
     case self::ACTION_UPDATE:
-      $stmt .= "UPDATE `$table` SET ";
-      for ($i=0; $i < count($fields); $i++) {
-        if ($i > 0) $stmt .= ',';
-        $field = $fields[$i];
-        $stmt .= "`$field`" . '=:' . $field;
+      foreach ($fields as $field) {
+        if (!$field) {
+          continue;
+        }
+        $stmtSet .= ($stmtSet ? "," : '') . "`$field`=:$field";
       }
+      $stmt .= "UPDATE `$table` SET $stmtSet";
       break;
     default:
       throw new Exception('Unknown Db::action: ' . $action . '.');
