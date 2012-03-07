@@ -385,7 +385,7 @@ class Db {
   /**
   * create statement string for insert or update
   */
-  public static function createStmt($action, $table, $fields, $where) {
+  public static function createStmt($action, $table, $fields, $where = null) {
 
     $stmt = '';
 
