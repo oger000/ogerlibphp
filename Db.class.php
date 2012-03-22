@@ -232,6 +232,12 @@ class Db {
 
   /**
   * create where clause for prepared statement
+  * ---
+  * Memo on prepared statements (php 5.3):
+  * Looks like repared statements are always filled in as strings, even
+  * if they are forced to numbers (for example multiplied with 1).
+  * So whe have to explicitly cast them in the were statement if
+  * we need numbers.
   */
   public static function createWhereStmt($fields, $andOr = 'AND', $withWhere = false) {
 
@@ -250,26 +256,34 @@ class Db {
 
 
     // create where clause
-    // fieldname can contain comparation operator and andOr operator
+    // fieldname can contain cast-operator, comparation-operator and andOr operator
     foreach ($fields as $fieldName) {
 
       list($fieldName, $compOp, $valueName, $andOrOp) = explode(",", $fieldName);
+      list($fieldName, $cast) = explode("#", $fieldName);
 
       $fieldName = trim($fieldName);
       if (!$fieldName) {
         continue;
       }
-      static::checkFieldName($fieldName, false);
+      if (!static::checkFieldName($fieldName, false)) {
+        continue;
+      }
 
       $valueName = trim($valueName);
       if (!$valueName) {
         $valueName = $fieldName;
       }
+      if (substr($valueName, 0, 1) != ":") {
+        $valueName = ":" . $valueName;
+      }
+
+      $cast = trim($cast);
+      if ($cast) {
+        $valueName = "CAST($valueName AS $cast)";
+      }
 
       $compOp = trim($compOp);
-      if (!$compOp) {
-        $compOp = "=";
-      }
       switch ($compOp) {
       case "=":
       case "!=":
@@ -279,6 +293,7 @@ class Db {
       case ">=":
         break;
       default:
+        $compOp = "=";
       }
 
       $andOrOp = trim($andOrOp);
@@ -286,7 +301,7 @@ class Db {
         $andOr = $andOrOp;  // fieldspecific values overwrite general settings
       }
 
-      $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName`" . $compOp . ":$valueName";
+      $stmt .= ($stmt ? " $andOr " : '') . "`$fieldName` $compOp $valueName";
     }
 
     // return nothing if no statement created
@@ -311,10 +326,11 @@ class Db {
 
     $whereVals = array();
 
-    // fieldname can contain comparation operator and andOr operator
+    // fieldname can contain cast-operator, comparation-operator and andOr operator
     foreach ($values as $key => $value) {
 
       list($fieldName, $compOp, $valueName, $$andOrOp) = explode(",", $key);
+      list($fieldName, $cast) = explode("#", $fieldName);
 
       $fieldName = trim($fieldName);
       if (!$fieldName) {
