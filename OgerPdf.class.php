@@ -730,6 +730,28 @@ class OgerPdf extends TCPDF {
   ########## TEMPLATE END ##########
 
 
+  /**
+  * Get variable names used in template
+  */
+  public function getVarNames($text) {
+
+    $varNames = array();
+
+    // prepare text and substitute variables
+    // MEMO: if preg_match_all is to slow we can try exploding at "{" etc
+    //       have a look at this->substTextVals()
+    preg_match_all('/(\{.*?\})/ms', $text, $varDefs);
+    foreach ($varDefs[1] as $varDef) {  // loop over first matching braces
+      $varName = trim(substr(substr($varDef, 1), 0, -1));  // remove {}
+      list($varName, $format) = explode(" ", $varName, 2);
+      $varName = trim($varName);
+      $varNames[$varName] = $varName;
+    }
+
+    return $varNames;
+  }   // eo get var names
+
+
 
   /**
   * Substitute variables in text
@@ -844,7 +866,6 @@ class OgerPdf extends TCPDF {
         }
       }
     }
-
   }   // eo store attributes
 
   /**
@@ -867,7 +888,7 @@ class OgerPdf extends TCPDF {
         case 'POS_X':
           parent::setX($this->attribStore[$index][$attrib]);
           break;
-        case 'POS_Y':   // ATTENTION sety alone set back to left margin, so use setXY
+        case 'POS_Y':   // ATTENTION sety alone set x back to left margin, so use setXY
           parent::setXY($this->getX(), $this->attribStore[$index][$attrib]);
           break;
         case 'POS_XY':
@@ -878,9 +899,7 @@ class OgerPdf extends TCPDF {
         }
       }
     }
-//$this->tplCell(array(20),"x.");
-//$this->tplCell(array(20),"y.");
-  }   // eo store attributes
+  }   // eo restore attributes
 
 
 
