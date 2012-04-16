@@ -773,7 +773,10 @@ class OgerPdf extends TCPDF {
           $formatType = trim($formatType);
           switch ($formatType) {
           case "datetime":
-            $value = date($format, strtotime($value));
+            // empty date remains empty
+            if ($value) {
+              $value = date($format, strtotime($value));
+            }
             break;
           }  // eo formattye
         }
