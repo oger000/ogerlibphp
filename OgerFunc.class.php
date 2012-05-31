@@ -39,6 +39,9 @@ class OgerFunc {
   /**
   * Check if array is associative.
   * That means if it has non numeric keys.
+  * ATTENTION: Associative arrays with only numeric keys are
+  * treated as NOT associative!!!! (but this is a general problem
+  * also in php internal-functions like array_merge, ...)
   */
   public static function isAssoc($array) {
     if (!is_array($array)) {
@@ -155,6 +158,43 @@ public static function beautifyJson($json) {
 
   return $result;
 }  // eo beautify json
+
+
+
+/**
+ * Merge two or more arrays and preserve numeric keys
+ */
+public static function arrayMergeAssoc() {
+  $result = array();
+  $arrays = func_get_args();
+  foreach($arrays as $array) {
+    foreach($array as $key => $value) {
+      $result[$key] = $value;
+    }
+  }
+  return $result;
+}  // eo array merge assoc
+
+
+/**
+ * Explode an string and create assiciative array
+ */
+public static function explodeAssoc($separator, $str, $limit = 0) {
+  $result = array();
+  if (func_num_args() > 2) {
+    $array = explode($separator, $str, $limit);
+  }
+  else {
+    $array = explode($separator, $str);
+  }
+
+  foreach($array as $key => $value) {
+    $result[$value] = $value;
+  }
+  return $result;
+}  // eo explode assoc
+
+
 
 
 }  // eo class
