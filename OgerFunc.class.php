@@ -57,10 +57,10 @@ class OgerFunc {
 
 
   /**
-  * Insert an associative array into another associative array after specified key.
+  * Insert all key/value pairs of an associative array into another associative array after specified key.
   * Numeric arrays are NOT handled properly!
   * WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
-  * Same keys in array2 overwrites values of array1.
+  * Values from array2 may overwrites values of array1 if the same key is present in both arrays.
   * TODO: Check: Maybe this is slow. There is another solution spliting the original
   * array into keys and values, insert the new keys and values via array_splice and
   * create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
@@ -74,13 +74,13 @@ class OgerFunc {
     foreach ($array1 as $key1 => $value1) {
       $array[$key1] = $value1;
       if ($key1 == $searchKey) {
-        $insertDone = true;
         foreach ($array2 as $key2 => $value2) {
           $array[$key2] = $value2;
         }
+        $insertDone = true;
       }
     }
-    // if we did not find the key append the inserts here
+    // if we did not find the key then append the inserts here
     if (!$insertDone) {
       foreach ($array2 as $key2 => $value2) {
         $array[$key2] = $value2;
@@ -89,7 +89,43 @@ class OgerFunc {
 
     $array1 = $array;
     return $array;
-  }  // eo assoc check
+  }  // eo insert after key
+
+
+  /**
+  * Insert all key/value pairs of an associative array into another associative array before specified key.
+  * Numeric arrays are NOT handled properly!
+  * WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
+  * Values from array2 may overwrites values of array1 if the same key is present in both arrays.
+  * TODO: Check: Maybe this is slow. There is another solution spliting the original
+  * array into keys and values, insert the new keys and values via array_splice and
+  * create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
+  * @array1: Associative array.
+  * @searchKey: Key after which array 2 is inserted.
+  * @array2: Associative array.
+  */
+  public static function arrayInsertBeforeKey(&$array1, $searchKey, $array2) {
+    $array = array();
+    $insertDone = false;
+    foreach ($array1 as $key1 => $value1) {
+      if ($key1 == $searchKey) {
+        foreach ($array2 as $key2 => $value2) {
+          $array[$key2] = $value2;
+        }
+        $insertDone = true;
+      }
+      $array[$key1] = $value1;
+    }
+    // if we did not find the key then append the inserts here
+    if (!$insertDone) {
+      foreach ($array2 as $key2 => $value2) {
+        $array[$key2] = $value2;
+      }
+    }
+
+    $array1 = $array;
+    return $array;
+  }  // eo insert before key
 
 
   /**
