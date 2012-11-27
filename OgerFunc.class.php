@@ -204,6 +204,9 @@ public static function arrayMergeAssoc() {
   $result = array();
   $arrays = func_get_args();
   foreach($arrays as $array) {
+    if ($array == null) {
+      continue;
+    }
     foreach($array as $key => $value) {
       $result[$key] = $value;
     }
