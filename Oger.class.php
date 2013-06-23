@@ -77,6 +77,20 @@ class Oger {
 
 
   /**
+  * BACKPORT from Oger12 for ogerlibphp12 calls
+  * Pad string (multibyte variant).
+  * @param $str Debug message.
+  * see: <http://php.net/manual/en/ref.mbstring.php>
+  */
+  public static function mbStrPad($str, $len, $padStr = " ", $padStyle = STR_PAD_RIGHT, $encoding = "UTF-8") {
+    return str_pad($str, strlen($str) - mb_strlen($str, $encoding) + $len, $padStr, $padStyle);
+  }  // eo str pad
+
+
+
+
+
+  /**
   * Report a debug message.
   * @param $msg Debug message.
   */
