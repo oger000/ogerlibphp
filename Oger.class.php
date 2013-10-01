@@ -99,6 +99,16 @@ class Oger {
   }
 
 
+  /**
+  * Report a debug message to a file.
+  * @param $msg Debug message.
+  * @param $fileName File to write to. Must be writable for calling user.
+  */
+  public static function debugFile($msg, $fileName = "debug.localonly") {
+    @file_put_contents($fileName, "{$msg}\n", FILE_APPEND);
+  }  // eo debug to file
+
+
 }  // eo class
 
 ?>
