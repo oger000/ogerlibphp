@@ -12,130 +12,130 @@
 */
 class OgerFunc {
 
-  /**
-  * untabify string with tabstop width
-  */
-  public static function untabify($string, $tabWidth = 8) {
+	/**
+	* untabify string with tabstop width
+	*/
+	public static function untabify($string, $tabWidth = 8) {
 
-    $parts = explode("\t", $string);
+		$parts = explode("\t", $string);
 
-    $result = array_shift($parts);
-    while (count($parts)) {
-      // the previous part is followed by at least one blank
-      $result .= ' ';
-      // insert blanks till the next tabstop
-      while (strlen($result) % $tabWidth) {
-        $result .= ' ';
-      }
-      // append next string part
-      $result .= array_shift($parts);
-    }  // loop over parts
+		$result = array_shift($parts);
+		while (count($parts)) {
+			// the previous part is followed by at least one blank
+			$result .= ' ';
+			// insert blanks till the next tabstop
+			while (strlen($result) % $tabWidth) {
+				$result .= ' ';
+			}
+			// append next string part
+			$result .= array_shift($parts);
+		}  // loop over parts
 
-    return $result;
+		return $result;
 
-  }  // end of untabify string
-
-
-  /**
-  * Check if array is associative.
-  * That means if it has non numeric keys.
-  * ATTENTION: Associative arrays with only numeric keys are
-  * treated as NOT associative!!!! (but this is a general problem
-  * also in php internal-functions like array_merge, ...)
-  */
-  public static function isAssoc($array) {
-    if (!is_array($array)) {
-      return false;
-    }
-    foreach ($array as $key => $value) {
-      if (!is_numeric($key)) {
-        return true;
-      }
-    }
-    return false;
-  }  // eo assoc check
+	}  // end of untabify string
 
 
-  /**
-  * Insert all key/value pairs of an associative array into another associative array after specified key.
-  * Numeric arrays are NOT handled properly!
-  * WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
-  * Values from array2 may overwrites values of array1 if the same key is present in both arrays.
-  * TODO: Check: Maybe this is slow. There is another solution spliting the original
-  * array into keys and values, insert the new keys and values via array_splice and
-  * create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
-  * @array1: Associative array.
-  * @searchKey: Key after which array 2 is inserted.
-  * @array2: Associative array.
-  */
-  public static function arrayInsertAfterKey(&$array1, $searchKey, $array2) {
-    $array = array();
-    $insertDone = false;
-    foreach ($array1 as $key1 => $value1) {
-      $array[$key1] = $value1;
-      if ($key1 == $searchKey) {
-        foreach ($array2 as $key2 => $value2) {
-          $array[$key2] = $value2;
-        }
-        $insertDone = true;
-      }
-    }
-    // if we did not find the key then append the inserts here
-    if (!$insertDone) {
-      foreach ($array2 as $key2 => $value2) {
-        $array[$key2] = $value2;
-      }
-    }
-
-    $array1 = $array;
-    return $array;
-  }  // eo insert after key
+	/**
+	* Check if array is associative.
+	* That means if it has non numeric keys.
+	* ATTENTION: Associative arrays with only numeric keys are
+	* treated as NOT associative!!!! (but this is a general problem
+	* also in php internal-functions like array_merge, ...)
+	*/
+	public static function isAssoc($array) {
+		if (!is_array($array)) {
+			return false;
+		}
+		foreach ($array as $key => $value) {
+			if (!is_numeric($key)) {
+				return true;
+			}
+		}
+		return false;
+	}  // eo assoc check
 
 
-  /**
-  * Insert all key/value pairs of an associative array into another associative array before specified key.
-  * Numeric arrays are NOT handled properly!
-  * WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
-  * Values from array2 may overwrites values of array1 if the same key is present in both arrays.
-  * TODO: Check: Maybe this is slow. There is another solution spliting the original
-  * array into keys and values, insert the new keys and values via array_splice and
-  * create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
-  * @array1: Associative array.
-  * @searchKey: Key after which array 2 is inserted.
-  * @array2: Associative array.
-  */
-  public static function arrayInsertBeforeKey(&$array1, $searchKey, $array2) {
-    $array = array();
-    $insertDone = false;
-    foreach ($array1 as $key1 => $value1) {
-      if ($key1 == $searchKey) {
-        foreach ($array2 as $key2 => $value2) {
-          $array[$key2] = $value2;
-        }
-        $insertDone = true;
-      }
-      $array[$key1] = $value1;
-    }
-    // if we did not find the key then append the inserts here
-    if (!$insertDone) {
-      foreach ($array2 as $key2 => $value2) {
-        $array[$key2] = $value2;
-      }
-    }
+	/**
+	* Insert all key/value pairs of an associative array into another associative array after specified key.
+	* Numeric arrays are NOT handled properly!
+	* WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
+	* Values from array2 may overwrites values of array1 if the same key is present in both arrays.
+	* TODO: Check: Maybe this is slow. There is another solution spliting the original
+	* array into keys and values, insert the new keys and values via array_splice and
+	* create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
+	* @array1: Associative array.
+	* @searchKey: Key after which array 2 is inserted.
+	* @array2: Associative array.
+	*/
+	public static function arrayInsertAfterKey(&$array1, $searchKey, $array2) {
+		$array = array();
+		$insertDone = false;
+		foreach ($array1 as $key1 => $value1) {
+			$array[$key1] = $value1;
+			if ($key1 == $searchKey) {
+				foreach ($array2 as $key2 => $value2) {
+					$array[$key2] = $value2;
+				}
+				$insertDone = true;
+			}
+		}
+		// if we did not find the key then append the inserts here
+		if (!$insertDone) {
+			foreach ($array2 as $key2 => $value2) {
+				$array[$key2] = $value2;
+			}
+		}
 
-    $array1 = $array;
-    return $array;
-  }  // eo insert before key
+		$array1 = $array;
+		return $array;
+	}  // eo insert after key
 
 
-  /**
-  * Evaluate an arithmetic expressoin from string.
-  * Only base arithmetic works because of security reasons.
-  */
-  public static function evalMath($str) {
-    $str = preg_replace('/[^0-9\. \+\-\*\/\(\)]+/', '', $str);
-    return eval('return ' . $str . ';');
-  }
+	/**
+	* Insert all key/value pairs of an associative array into another associative array before specified key.
+	* Numeric arrays are NOT handled properly!
+	* WE DONT CHECK ANYTHING! Values are overwritten and other unexpected results may happen if input is not correct.
+	* Values from array2 may overwrites values of array1 if the same key is present in both arrays.
+	* TODO: Check: Maybe this is slow. There is another solution spliting the original
+	* array into keys and values, insert the new keys and values via array_splice and
+	* create the result array via array_combine. See: <http://www.php.net/manual/en/function.array-splice.php>
+	* @array1: Associative array.
+	* @searchKey: Key after which array 2 is inserted.
+	* @array2: Associative array.
+	*/
+	public static function arrayInsertBeforeKey(&$array1, $searchKey, $array2) {
+		$array = array();
+		$insertDone = false;
+		foreach ($array1 as $key1 => $value1) {
+			if ($key1 == $searchKey) {
+				foreach ($array2 as $key2 => $value2) {
+					$array[$key2] = $value2;
+				}
+				$insertDone = true;
+			}
+			$array[$key1] = $value1;
+		}
+		// if we did not find the key then append the inserts here
+		if (!$insertDone) {
+			foreach ($array2 as $key2 => $value2) {
+				$array[$key2] = $value2;
+			}
+		}
+
+		$array1 = $array;
+		return $array;
+	}  // eo insert before key
+
+
+	/**
+	* Evaluate an arithmetic expressoin from string.
+	* Only base arithmetic works because of security reasons.
+	*/
+	public static function evalMath($str) {
+		$str = preg_replace('/[^0-9\. \+\-\*\/\(\)]+/', '', $str);
+		return eval('return ' . $str . ';');
+	}
 
 
 /**
@@ -146,53 +146,53 @@ class OgerFunc {
  */
 public static function beautifyJson($json) {
 
-  $result      = '';
-  $pos         = 0;
-  $strLen      = strlen($json);
-  $indentStr   = '  ';
-  $newLine     = "\n";
-  $prevChar    = '';
-  $outOfQuotes = true;
+	$result      = '';
+	$pos         = 0;
+	$strLen      = strlen($json);
+	$indentStr   = '  ';
+	$newLine     = "\n";
+	$prevChar    = '';
+	$outOfQuotes = true;
 
-  for ($i=0; $i<=$strLen; $i++) {
+	for ($i=0; $i<=$strLen; $i++) {
 
-    // Grab the next character in the string.
-    $char = substr($json, $i, 1);
+		// Grab the next character in the string.
+		$char = substr($json, $i, 1);
 
-    // Are we inside a quoted string?
-    if ($char == '"' && $prevChar != '\\') {
-      $outOfQuotes = !$outOfQuotes;
+		// Are we inside a quoted string?
+		if ($char == '"' && $prevChar != '\\') {
+			$outOfQuotes = !$outOfQuotes;
 
-    // If this character is the end of an element,
-    // output a new line and indent the next line.
-    } else if(($char == '}' || $char == ']') && $outOfQuotes) {
-      $result .= $newLine;
-      $pos --;
-      for ($j=0; $j<$pos; $j++) {
-        $result .= $indentStr;
-      }
-    }
+		// If this character is the end of an element,
+		// output a new line and indent the next line.
+		} else if(($char == '}' || $char == ']') && $outOfQuotes) {
+			$result .= $newLine;
+			$pos --;
+			for ($j=0; $j<$pos; $j++) {
+				$result .= $indentStr;
+			}
+		}
 
-    // Add the character to the result string.
-    $result .= $char;
+		// Add the character to the result string.
+		$result .= $char;
 
-    // If the last character was the beginning of an element,
-    // output a new line and indent the next line.
-    if (($char == ',' || $char == '{' || $char == '[') && $outOfQuotes) {
-      $result .= $newLine;
-      if ($char == '{' || $char == '[') {
-        $pos ++;
-      }
+		// If the last character was the beginning of an element,
+		// output a new line and indent the next line.
+		if (($char == ',' || $char == '{' || $char == '[') && $outOfQuotes) {
+			$result .= $newLine;
+			if ($char == '{' || $char == '[') {
+				$pos ++;
+			}
 
-      for ($j = 0; $j < $pos; $j++) {
-        $result .= $indentStr;
-      }
-    }
+			for ($j = 0; $j < $pos; $j++) {
+				$result .= $indentStr;
+			}
+		}
 
-    $prevChar = $char;
-  }
+		$prevChar = $char;
+	}
 
-  return $result;
+	return $result;
 }  // eo beautify json
 
 
@@ -201,17 +201,17 @@ public static function beautifyJson($json) {
  * Merge two or more arrays and preserve numeric keys
  */
 public static function arrayMergeAssoc() {
-  $result = array();
-  $arrays = func_get_args();
-  foreach($arrays as $array) {
-    if ($array == null) {
-      continue;
-    }
-    foreach($array as $key => $value) {
-      $result[$key] = $value;
-    }
-  }
-  return $result;
+	$result = array();
+	$arrays = func_get_args();
+	foreach($arrays as $array) {
+		if ($array == null) {
+			continue;
+		}
+		foreach($array as $key => $value) {
+			$result[$key] = $value;
+		}
+	}
+	return $result;
 }  // eo array merge assoc
 
 
@@ -219,18 +219,18 @@ public static function arrayMergeAssoc() {
  * Explode an string and create assiciative array
  */
 public static function explodeAssoc($separator, $str, $limit = 0) {
-  $result = array();
-  if (func_num_args() > 2) {
-    $array = explode($separator, $str, $limit);
-  }
-  else {
-    $array = explode($separator, $str);
-  }
+	$result = array();
+	if (func_num_args() > 2) {
+		$array = explode($separator, $str, $limit);
+	}
+	else {
+		$array = explode($separator, $str);
+	}
 
-  foreach($array as $key => $value) {
-    $result[$value] = $value;
-  }
-  return $result;
+	foreach($array as $key => $value) {
+		$result[$value] = $value;
+	}
+	return $result;
 }  // eo explode assoc
 
 
