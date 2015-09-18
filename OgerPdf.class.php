@@ -645,6 +645,11 @@ class OgerPdf extends TCPDF {
 			}
 		}
 
+		// resetH default to true !
+		if ($resetH === "") {
+			$resetH = true;
+		}
+
 		parent::MultiCell($width, $height, $text, $border, $align, $fill,
 											$ln, $x, $y, $resetH, $stretch, $isHtml, $autoPadding, $maxHeight, $vAlign, $fitCell);
 
